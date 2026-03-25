@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/allergies_restrictions_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/white"
+    tools:context=".AllergiesRestrictionsActivity">
+
+    <ImageView
+        android:id="@+id/btn_back"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp"
+        android:padding="12dp"
+        android:src="@drawable/ic_arrow_back"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/tv_header_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:text="Health Profile"
+        android:textColor="@color/text_black"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="@+id/btn_back"
+        app:layout_constraintStart_toEndOf="@+id/btn_back"
+        app:layout_constraintTop_toTopOf="@+id/btn_back" />
+
+    <TextView
+        android:id="@+id/tv_step"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="Step 4 of 4"
+        android:textColor="@color/text_grey"
+        android:textSize="14sp"
+        app:layout_constraintStart_toStartOf="@+id/tv_header_title"
+        app:layout_constraintTop_toBottomOf="@+id/tv_header_title" />
+
+    <View
+        android:id="@+id/progress_bar_bg"
+        android:layout_width="0dp"
+        android:layout_height="4dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="16dp"
+        android:background="@color/grey_light"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/tv_step" />
+
+    <View
+        android:id="@+id/progress_bar_fill"
+        android:layout_width="0dp"
+        android:layout_height="4dp"
+        android:background="@color/bg_green"
+        app:layout_constraintBottom_toBottomOf="@+id/progress_bar_bg"
+        app:layout_constraintStart_toStartOf="@+id/progress_bar_bg"
+        app:layout_constraintTop_toTopOf="@+id/progress_bar_bg"
+        app:layout_constraintWidth_percent="1.0" />
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="24dp"
+        app:layout_constraintBottom_toTopOf="@+id/btn_complete"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/progress_bar_bg">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="24dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Allergies &amp; Restrictions"
+                android:textColor="@color/text_black"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Optional but recommended"
+                android:textColor="@color/text_grey"
+                android:textSize="16sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:text="Food Allergies"
+                android:textColor="@color/text_black"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <GridLayout
+                android:id="@+id/allergies_grid"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:columnCount="2">
+
+                <TextView
+                    android:id="@+id/tag_peanuts"
+                    style="@style/OptionTag.Allergy"
+                    android:text="Peanuts" />
+
+                <TextView
+                    android:id="@+id/tag_tree_nuts"
+                    style="@style/OptionTag.Allergy"
+                    android:text="Tree Nuts" />
+
+                <TextView
+                    android:id="@+id/tag_dairy"
+                    style="@style/OptionTag.Allergy"
+                    android:text="Dairy" />
+
+                <TextView
+                    android:id="@+id/tag_eggs"
+                    style="@style/OptionTag.Allergy"
+                    android:text="Eggs" />
+
+                <TextView
+                    android:id="@+id/tag_soy"
+                    style="@style/OptionTag.Allergy"
+                    android:text="Soy" />
+
+                <TextView
+                    android:id="@+id/tag_wheat"
+                    style="@style/OptionTag.Allergy"
+                    android:text="Wheat" />
+
+                <TextView
+                    android:id="@+id/tag_fish"
+                    style="@style/OptionTag.Allergy"
+                    android:text="Fish" />
+
+                <TextView
+                    android:id="@+id/tag_shellfish"
+                    style="@style/OptionTag.Allergy"
+                    android:text="Shellfish" />
+            </GridLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="32dp"
+                android:text="Dietary Restrictions"
+                android:textColor="@color/text_black"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <GridLayout
+                android:id="@+id/restrictions_grid"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:columnCount="2">
+
+                <TextView
+                    android:id="@+id/tag_vegetarian"
+                    style="@style/OptionTag.Restriction"
+                    android:text="Vegetarian" />
+
+                <TextView
+                    android:id="@+id/tag_vegan"
+                    style="@style/OptionTag.Restriction"
+                    android:text="Vegan" />
+
+                <TextView
+                    android:id="@+id/tag_gluten_free"
+                    style="@style/OptionTag.Restriction"
+                    android:text="Gluten-Free" />
+
+                <TextView
+                    android:id="@+id/tag_keto"
+                    style="@style/OptionTag.Restriction"
+                    android:text="Keto" />
+
+                <TextView
+                    android:id="@+id/tag_paleo"
+                    style="@style/OptionTag.Restriction"
+                    android:text="Paleo" />
+
+                <TextView
+                    android:id="@+id/tag_low_carb"
+                    style="@style/OptionTag.Restriction"
+                    android:text="Low-Carb" />
+
+                <TextView
+                    android:id="@+id/tag_halal"
+                    style="@style/OptionTag.Restriction"
+                    android:text="Halal" />
+
+                <TextView
+                    android:id="@+id/tag_kosher"
+                    style="@style/OptionTag.Restriction"
+                    android:text="Kosher" />
+            </GridLayout>
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <Button
+        android:id="@+id/btn_complete"
+        android:layout_width="0dp"
+        android:layout_height="60dp"
+        android:layout_marginStart="24dp"
+        android:layout_marginEnd="24dp"
+        android:layout_marginBottom="32dp"
+        android:backgroundTint="@color/bg_green"
+        android:text="Complete Setup"
+        android:textAllCaps="false"
+        android:textColor="@color/white"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:shapeAppearanceOverlay="@style/RoundedButton" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
