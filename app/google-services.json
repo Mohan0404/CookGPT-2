@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "406938549831",
+    "project_id": "cookgpt-3bf1f",
+    "storage_bucket": "cookgpt-3bf1f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:406938549831:android:8cc2e6f43b5a5a9a13fb62",
+        "android_client_info": {
+          "package_name": "com.example.cookgpt"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCS3sWdpVUcTgfmg5shPlw-M6mTx2ethvg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

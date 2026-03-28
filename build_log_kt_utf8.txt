@@ -1,0 +1,78 @@
+﻿
+> Configure project :app
+WARNING: The option setting 'android.builtInKotlin=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+WARNING: The option setting 'android.newDsl=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:generateDebugBuildConfig UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:processDebugGoogleServices UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:processDebugNavigationResources FAILED
+.\gradlew : 
+At line:1 char:1
++ .\gradlew 
+compileDebugKotlin 
+--console plain > 
+build_log_kt.txt 2>&1  ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~
+    + CategoryInfo        
+      : NotSpecified: (:  
+  String) [], RemoteExc   
+ eption
+    + FullyQualifiedError 
+   Id : NativeCommandErr  
+  or
+ 
+FAILURE: Build failed 
+with an exception.
+
+* What went wrong:
+Execution failed for task 
+':app:processDebugNavigati
+onResources'.
+> Could not resolve all 
+files for configuration ':
+app:debugRuntimeClasspath'
+.
+   > Could not find com.pi
+erfrancesco.androidyoutube
+player:core:12.1.0.
+     Searched in the 
+following locations:
+       - https://dl.google
+.com/dl/android/maven2/com
+/pierfrancesco/androidyout
+ubeplayer/core/12.1.0/core
+-12.1.0.pom
+       - https://repo.mave
+n.apache.org/maven2/com/pi
+erfrancesco/androidyoutube
+player/core/12.1.0/core-12
+.1.0.pom
+     Required by:
+         project ':app'
+
+* Try:
+> Run with --stacktrace 
+option to get the stack 
+trace.
+> Run with --info or 
+--debug option to get 
+more log output.
+> Run with --scan to 
+generate a Build Scan 
+(Powered by Develocity).
+> Get more help at 
+https://help.gradle.org.
+
+BUILD FAILED in 2s
+5 actionable tasks: 1 executed, 4 up-to-date
