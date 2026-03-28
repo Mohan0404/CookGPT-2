@@ -8,6 +8,14 @@
     android:background="#F9FAFB"
     tools:context=".SettingsActivity">
 
+    <!-- Header Section -->
+    <View
+        android:id="@+id/header_bg"
+        android:layout_width="match_parent"
+        android:layout_height="100dp"
+        android:background="@color/bg_green"
+        app:layout_constraintTop_toTopOf="parent" />
+
     <ImageView
         android:id="@+id/btn_back"
         android:layout_width="48dp"
@@ -17,7 +25,8 @@
         android:padding="12dp"
         android:src="@drawable/ic_arrow_back"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:tint="@color/white" />
 
     <TextView
         android:id="@+id/tv_header_title"
@@ -25,57 +34,19 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
         android:text="Settings"
-        android:textColor="@color/text_black"
-        android:textSize="24sp"
+        android:textColor="@color/white"
+        android:textSize="22sp"
         android:textStyle="bold"
         app:layout_constraintBottom_toBottomOf="@+id/btn_back"
         app:layout_constraintStart_toEndOf="@+id/btn_back"
         app:layout_constraintTop_toTopOf="@+id/btn_back" />
 
-    <androidx.cardview.widget.CardView
-        android:id="@+id/card_theme"
+    <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="24dp"
-        android:layout_marginTop="32dp"
-        android:layout_marginEnd="24dp"
-        app:cardCornerRadius="16dp"
-        app:cardElevation="2dp"
-        app:layout_constraintTop_toBottomOf="@+id/btn_back">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:padding="20dp">
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Dark Mode"
-                android:textColor="@color/text_black"
-                android:textSize="18sp"
-                android:textStyle="bold" />
-
-            <androidx.appcompat.widget.SwitchCompat
-                android:id="@+id/switch_dark_mode"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
-        </LinearLayout>
-    </androidx.cardview.widget.CardView>
-
-    <androidx.cardview.widget.CardView
-        android:id="@+id/card_brightness"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="24dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="24dp"
-        app:cardCornerRadius="16dp"
-        app:cardElevation="2dp"
-        app:layout_constraintTop_toBottomOf="@+id/card_theme">
+        android:layout_height="0dp"
+        android:fillViewport="true"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/header_bg">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -83,22 +54,291 @@
             android:orientation="vertical"
             android:padding="20dp">
 
+            <!-- Profile Summary Card -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="20dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <TextView
+                        android:id="@+id/tv_user_name_display"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="User Name"
+                        android:textColor="@color/text_black"
+                        android:textSize="20sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tv_user_metrics"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="Male | 25 Years"
+                        android:textColor="@color/text_grey"
+                        android:textSize="14sp" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginTop="16dp"
+                        android:layout_marginBottom="16dp"
+                        android:background="#EEEEEE" />
+
+                    <GridLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:columnCount="2">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_columnWeight="1"
+                            android:orientation="vertical">
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Weight"
+                                android:textColor="@color/text_grey"
+                                android:textSize="12sp" />
+                            <TextView
+                                android:id="@+id/tv_val_weight"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="-- kg"
+                                android:textColor="@color/text_black"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_columnWeight="1"
+                            android:orientation="vertical">
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Height"
+                                android:textColor="@color/text_grey"
+                                android:textSize="12sp" />
+                            <TextView
+                                android:id="@+id/tv_val_height"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="-- cm"
+                                android:textColor="@color/text_black"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+                    </GridLayout>
+
+                    <!-- TASK 8: Edit Profile button -->
+                    <Button
+                        android:id="@+id/btn_edit_profile"
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:layout_marginTop="12dp"
+                        android:backgroundTint="@color/bg_green"
+                        android:text="Edit Profile"
+                        android:textAllCaps="false"
+                        android:textColor="#FFFFFF"
+                        android:textSize="13sp"
+                        app:cornerRadius="8dp" />
+
+                    <Button
+                        android:id="@+id/btn_edit_metrics"
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:layout_marginTop="6dp"
+                        android:backgroundTint="#6B7280"
+                        android:text="Edit Body Metrics"
+                        android:textAllCaps="false"
+                        android:textColor="#FFFFFF"
+                        android:textSize="13sp"
+                        app:cornerRadius="8dp" />
+
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- Health Goals & Dietary -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Brightness"
+                android:layout_marginBottom="12dp"
+                android:text="Health Profile"
                 android:textColor="@color/text_black"
-                android:textSize="18sp"
+                android:textSize="16sp"
                 android:textStyle="bold" />
 
-            <SeekBar
-                android:id="@+id/seekbar_brightness"
+            <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:max="255"
-                android:progress="127" />
+                android:layout_marginBottom="20dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Fitness Goal"
+                        android:textColor="@color/text_grey"
+                        android:textSize="12sp" />
+                    <TextView
+                        android:id="@+id/tv_val_goal"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:text="Not set"
+                        android:textColor="@color/text_black"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Allergies"
+                        android:textColor="@color/text_grey"
+                        android:textSize="12sp" />
+                    <TextView
+                        android:id="@+id/tv_val_allergies"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:text="None"
+                        android:textColor="@color/text_black"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Restrictions"
+                        android:textColor="@color/text_grey"
+                        android:textSize="12sp" />
+                    <TextView
+                        android:id="@+id/tv_val_restrictions"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="None"
+                        android:textColor="@color/text_black"
+                        android:textStyle="bold" />
+
+                    <!-- TASK 8: Edit Goal + Allergies buttons -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginTop="12dp">
+
+                        <Button
+                            android:id="@+id/btn_edit_goal"
+                            android:layout_width="0dp"
+                            android:layout_height="36dp"
+                            android:layout_weight="1"
+                            android:layout_marginEnd="6dp"
+                            android:backgroundTint="@color/bg_green"
+                            android:text="Edit Goal"
+                            android:textAllCaps="false"
+                            android:textColor="#FFFFFF"
+                            android:textSize="12sp"
+                            app:cornerRadius="8dp" />
+
+                        <Button
+                            android:id="@+id/btn_edit_allergies"
+                            android:layout_width="0dp"
+                            android:layout_height="36dp"
+                            android:layout_weight="1"
+                            android:backgroundTint="#6B7280"
+                            android:text="Edit Allergies"
+                            android:textAllCaps="false"
+                            android:textColor="#FFFFFF"
+                            android:textSize="12sp"
+                            app:cornerRadius="8dp" />
+                    </LinearLayout>
+
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- App Settings -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:text="App Preferences"
+                android:textColor="@color/text_black"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="20dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Dark Mode"
+                            android:textColor="@color/text_black" />
+                        <androidx.appcompat.widget.SwitchCompat
+                            android:id="@+id/switch_dark_mode"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:text="Brightness"
+                        android:textColor="@color/text_black" />
+                    <SeekBar
+                        android:id="@+id/seekbar_brightness"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:max="255" />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <Button
+                android:id="@+id/btn_logout"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="24dp"
+                android:backgroundTint="@color/text_red"
+                android:text="Logout"
+                android:textAllCaps="false"
+                android:textColor="@color/white"
+                android:textSize="18sp"
+                app:cornerRadius="12dp" />
+
         </LinearLayout>
-    </androidx.cardview.widget.CardView>
+    </androidx.core.widget.NestedScrollView>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

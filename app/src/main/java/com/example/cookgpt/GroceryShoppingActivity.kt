@@ -8,6 +8,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import com.google.firebase.auth.FirebaseAuth
 
 class GroceryShoppingActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -21,14 +22,25 @@ class GroceryShoppingActivity : AppCompatActivity() {
         }
 
         findViewById<Button>(R.id.btn_get_started).setOnClickListener {
-            val intent = Intent(this, HealthProfileActivity::class.java)
-            startActivity(intent)
+            proceedFromGroceryShopping()
         }
 
         findViewById<TextView>(R.id.btn_skip).setOnClickListener {
-            val intent = Intent(this, HealthProfileActivity::class.java)
-            startActivity(intent)
-            finishAffinity()
+            proceedFromGroceryShopping()
         }
+    }
+
+    private fun proceedFromGroceryShopping() {
+        // Auth gate: check BOTH Firebase Auth session AND local session
+        val firebaseUser = FirebaseAuth.getInstance().currentUser
+        val loggedIn = firebaseUser != null && SessionManager.isLoggedIn(this)
+
+        val intent = if (loggedIn) {
+            Intent(this, HealthProfileActivity::class.java)
+        } else {
+            Intent(this, RegisterActivity::class.java)
+        }
+        startActivity(intent)
+        finish()
     }
 }

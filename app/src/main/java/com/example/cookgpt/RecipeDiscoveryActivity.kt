@@ -21,14 +21,22 @@ class RecipeDiscoveryActivity : AppCompatActivity() {
         }
 
         findViewById<Button>(R.id.btn_next).setOnClickListener {
-            val intent = Intent(this, NutritionAnalysisActivity::class.java)
+            val intent = Intent(this@RecipeDiscoveryActivity, NutritionAnalysisActivity::class.java)
             startActivity(intent)
         }
 
         findViewById<TextView>(R.id.btn_skip).setOnClickListener {
-            val intent = Intent(this, HealthProfileActivity::class.java)
-            startActivity(intent)
-            finishAffinity()
+            proceedToAuthGate()
         }
+    }
+
+    private fun proceedToAuthGate() {
+        val intent = if (SessionManager.isLoggedIn(this)) {
+            Intent(this, HealthProfileActivity::class.java)
+        } else {
+            Intent(this, RegisterActivity::class.java)
+        }
+        startActivity(intent)
+        finish()
     }
 }

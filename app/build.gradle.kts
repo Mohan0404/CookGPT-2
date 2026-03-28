@@ -1,5 +1,11 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     alias(libs.plugins.android.application)
+    id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.kapt")
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -14,6 +20,17 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        val localProps = Properties()
+        val localPropsFile = project.rootProject.file("local.properties")
+        if (localPropsFile.exists()) {
+            localProps.load(FileInputStream(localPropsFile))
+        }
+        buildConfigField("String", "YOUTUBE_API_KEY", "\"${localProps.getProperty("YOUTUBE_API_KEY", "")}\"")
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
 
     buildTypes {
@@ -26,8 +43,11 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
+    }
+    kotlinOptions {
+        jvmTarget = "21"
     }
 }
 
@@ -39,6 +59,31 @@ dependencies {
     implementation(libs.androidx.constraintlayout)
     implementation(libs.androidx.work.runtime.ktx)
     implementation("com.google.android.gms:play-services-location:21.3.0")
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.github.bumptech.glide:glide:4.15.1")
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    kapt(libs.androidx.room.compiler)
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
+    implementation(libs.androidx.datastore.preferences)
+
+    // Coroutines (including play-services bridge for .await() on Firebase Tasks)
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
+
+    // Youtube Player API
+    implementation("com.pierfrancescosoffritti.androidyoutubeplayer:core:12.1.0")
+
+    // Chrome Custom Tabs — Layer-2 fallback when all embedded candidates fail
+    implementation("androidx.browser:browser:1.7.0")
+
+    // Firebase — single BOM pin, no version numbers on individual artifacts
+    implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
+    implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-database-ktx")
+    implementation("com.google.firebase:firebase-storage-ktx")
+    // BuildConfig field for YouTube API key
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

@@ -1,138 +1,182 @@
 package com.example.cookgpt
 
-import android.Manifest
-import android.content.pm.PackageManager
-import android.location.Address
-import android.location.Geocoder
-import android.location.Location
+import android.content.Context
+import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.View
-import android.widget.Button
-import android.widget.ProgressBar
-import android.widget.TextView
-import android.widget.Toast
+import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
-import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationServices
-import java.util.*
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.example.cookgpt.data.ApiService
+import com.example.cookgpt.data.Constants
+import com.example.cookgpt.data.RecipeResponse
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 class LocalFlavorActivity : AppCompatActivity() {
 
-    private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var tvCurrentCity: TextView
-    private lateinit var tvRecipeTitle: TextView
-    private lateinit var tvRecipeDescription: TextView
+    private lateinit var etManualCity: EditText
+    private lateinit var btnSearch: Button
     private lateinit var pbLoading: ProgressBar
-    private lateinit var tvSuggestionHeader: TextView
-    private lateinit var cardSuggestion: View
+    private lateinit var tvEmptyState: TextView
+    private lateinit var rvRecipes: RecyclerView
+
+    private val apiService = ApiService.create()
+    private var detectedCity = ""
+    private lateinit var llCityFallback: android.widget.LinearLayout
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_local_flavor)
 
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
-        
         findViewById<View>(R.id.btn_back).setOnClickListener { finish() }
-        tvCurrentCity = findViewById(R.id.tv_current_city)
-        tvRecipeTitle = findViewById(R.id.tv_recipe_title)
-        tvRecipeDescription = findViewById(R.id.tv_recipe_description)
-        pbLoading = findViewById(R.id.pb_loading)
-        tvSuggestionHeader = findViewById(R.id.tv_suggestion_header)
-        cardSuggestion = findViewById(R.id.card_suggestion)
-        
-        val btnDetect = findViewById<Button>(R.id.btn_detect_location)
-        btnDetect.setOnClickListener { detectLocation() }
 
-        detectLocation()
+        tvCurrentCity  = findViewById(R.id.tv_current_city)
+        llCityFallback  = findViewById(R.id.ll_city_fallback)
+        etManualCity   = findViewById(R.id.et_manual_city)
+        btnSearch      = findViewById(R.id.btn_search_local)
+        pbLoading      = findViewById(R.id.pb_loading)
+        tvEmptyState   = findViewById(R.id.tv_empty_state)
+        rvRecipes      = findViewById(R.id.rv_local_recipes)
+
+        rvRecipes.layoutManager = LinearLayoutManager(this)
+
+        btnSearch.setOnClickListener {
+            val city = etManualCity.text.toString().trim().ifEmpty { detectedCity }
+            if (city.isEmpty()) {
+                Toast.makeText(this, "Enter a city name", Toast.LENGTH_SHORT).show()
+            } else {
+                searchLocalRecipes(city)
+            }
+        }
+
+        // Try location-based city detection first
+        detectCityFromLocation()
     }
 
-    private fun detectLocation() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 100)
+    private fun detectCityFromLocation() {
+        if (androidx.core.app.ActivityCompat.checkSelfPermission(
+                this, android.Manifest.permission.ACCESS_FINE_LOCATION
+            ) != android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            tvCurrentCity.text = "Location permission not granted"
+            etManualCity.visibility = View.VISIBLE
+            btnSearch.visibility = View.VISIBLE
             return
         }
 
-        pbLoading.visibility = View.VISIBLE
-        fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
-            if (location != null) {
-                reverseGeocode(location.latitude, location.longitude)
-            } else {
-                pbLoading.visibility = View.GONE
-                Toast.makeText(this, "Unable to get location", Toast.LENGTH_SHORT).show()
+        com.google.android.gms.location.LocationServices
+            .getFusedLocationProviderClient(this)
+            .lastLocation
+            .addOnSuccessListener { location ->
+                if (location != null) {
+                    reverseGeocodeCity(location.latitude, location.longitude)
+                } else {
+                    tvCurrentCity.text = "Could not detect location"
+                    etManualCity.visibility = View.VISIBLE
+                    btnSearch.visibility = View.VISIBLE
+                }
             }
-        }
+            .addOnFailureListener {
+                tvCurrentCity.text = "Location unavailable"
+                etManualCity.visibility = View.VISIBLE
+                btnSearch.visibility = View.VISIBLE
+            }
     }
 
-    private fun reverseGeocode(lat: Double, lng: Double) {
-        val geocoder = Geocoder(this, Locale.getDefault())
+    private fun reverseGeocodeCity(lat: Double, lng: Double) {
         try {
-            // Using the modern listener-based API for Geocoder if available, otherwise falling back
+            val geocoder = android.location.Geocoder(this, java.util.Locale.getDefault())
             if (android.os.Build.VERSION.SDK_INT >= 33) {
-                geocoder.getFromLocation(lat, lng, 1, object : Geocoder.GeocodeListener {
-                    override fun onGeocode(addresses: MutableList<Address>) {
+                geocoder.getFromLocation(lat, lng, 1, object : android.location.Geocoder.GeocodeListener {
+                    override fun onGeocode(addresses: MutableList<android.location.Address>) {
                         runOnUiThread {
-                            processAddress(addresses)
+                            val city = addresses.firstOrNull()?.locality
+                                ?: addresses.firstOrNull()?.subAdminArea
+                                ?: ""
+                            if (city.isNotEmpty()) {
+                                showCityAndSearch(city)
+                            } else {
+                                showManualEntry()
+                            }
                         }
                     }
                     override fun onError(errorMessage: String?) {
-                        runOnUiThread {
-                            tvCurrentCity.text = "Error detecting city"
-                            pbLoading.visibility = View.GONE
-                        }
+                        runOnUiThread { showManualEntry() }
                     }
                 })
             } else {
                 @Suppress("DEPRECATION")
                 val addresses = geocoder.getFromLocation(lat, lng, 1)
-                processAddress(addresses)
-                pbLoading.visibility = View.GONE
+                val city = addresses?.firstOrNull()?.locality
+                    ?: addresses?.firstOrNull()?.subAdminArea
+                    ?: ""
+                if (city.isNotEmpty()) showCityAndSearch(city) else showManualEntry()
             }
         } catch (e: Exception) {
-            tvCurrentCity.text = "Error detecting city"
-            pbLoading.visibility = View.GONE
+            Log.e("LocalFlavor", "Geocoder error: ${e.localizedMessage}")
+            showManualEntry()
         }
     }
 
-    private fun processAddress(addresses: List<Address>?) {
-        if (!addresses.isNullOrEmpty()) {
-            val city = addresses[0].locality ?: addresses[0].subAdminArea ?: "Unknown City"
-            val country = addresses[0].countryName ?: ""
-            tvCurrentCity.text = "$city, $country"
-            suggestLocalRecipe(city)
-        } else {
-            tvCurrentCity.text = "City not found"
-        }
+    private fun showCityAndSearch(city: String) {
+        detectedCity = city
+        tvCurrentCity.text = "📍 $city"
+        Log.d("LocalFlavor", "Detected city: $city — searching recipes")
+        searchLocalRecipes(city)
     }
 
-    private fun suggestLocalRecipe(city: String) {
-        tvSuggestionHeader.visibility = View.VISIBLE
-        cardSuggestion.visibility = View.VISIBLE
-        
-        when {
-            city.contains("New Orleans", true) -> {
-                tvRecipeTitle.text = "Shrimp Gumbo"
-                tvRecipeDescription.text = "A classic Creole specialty from New Orleans. Rich roux, holy trinity of veggies, and fresh local shrimp."
-            }
-            city.contains("Tokyo", true) -> {
-                tvRecipeTitle.text = "Miso Glazed Salmon"
-                tvRecipeDescription.text = "Fresh seasonal salmon with a traditional Japanese miso glaze, popular in the Tokyo region."
-            }
-            city.contains("London", true) -> {
-                tvRecipeTitle.text = "Fish and Chips"
-                tvRecipeDescription.text = "The ultimate British comfort food. Crispy battered fish served with chunky chips."
-            }
-            else -> {
-                tvRecipeTitle.text = "Seasonal Garden Salad"
-                tvRecipeDescription.text = "Since you are in $city, we recommend a fresh salad using local seasonal greens and herbs from your region."
-            }
-        }
+    private fun showManualEntry() {
+        tvCurrentCity.text = "Could not detect city"
+        llCityFallback.visibility = View.VISIBLE
     }
 
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == 100 && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            detectLocation()
-        }
+    /**
+     * TASK 3: Use Spoonacular live API with city as query keyword.
+     * Replaces all hardcoded when/if city matching.
+     */
+    private fun searchLocalRecipes(city: String) {
+        tvEmptyState.visibility = View.GONE
+        pbLoading.visibility    = View.VISIBLE
+        rvRecipes.adapter       = null
+
+        val query = "$city traditional food"
+        Log.d("LocalFlavor", "Searching Spoonacular for: $query")
+
+        apiService.searchRecipes(query, Constants.API_KEY).enqueue(object : Callback<RecipeResponse> {
+            override fun onResponse(call: Call<RecipeResponse>, response: Response<RecipeResponse>) {
+                pbLoading.visibility = View.GONE
+                if (response.isSuccessful) {
+                    val recipes = response.body()?.results ?: emptyList()
+                    Log.d("LocalFlavor", "Got ${recipes.size} recipes for $city")
+                    if (recipes.isEmpty()) {
+                        tvEmptyState.text = "No results found for \"$city\""
+                        tvEmptyState.visibility = View.VISIBLE
+                    } else {
+                        rvRecipes.adapter = RecipeAdapter(recipes) { recipe ->
+                            Log.d("Navigation", "Clicked local recipe: ${recipe.title}")
+                            val intent = Intent(this@LocalFlavorActivity, RecipeDetailsActivity::class.java)
+                            intent.putExtra("RECIPE", recipe)
+                            Log.d("Navigation", "Intent created for RecipeDetailsActivity with local recipe: ${recipe.id}")
+                            startActivity(intent)
+                        }
+                    }
+                } else {
+                    Log.e("LocalFlavor", "API error ${response.code()}")
+                    tvEmptyState.text = "API error: ${response.code()}"
+                    tvEmptyState.visibility = View.VISIBLE
+                }
+            }
+            override fun onFailure(call: Call<RecipeResponse>, t: Throwable) {
+                pbLoading.visibility = View.GONE
+                Log.e("LocalFlavor", "Network error: ${t.localizedMessage}")
+                tvEmptyState.text = "No connection — check your internet"
+                tvEmptyState.visibility = View.VISIBLE
+            }
+        })
     }
 }

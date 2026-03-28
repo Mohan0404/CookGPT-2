@@ -8,6 +8,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 
 class OnboardingActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -20,15 +22,22 @@ class OnboardingActivity : AppCompatActivity() {
             insets
         }
 
+        val prefs = UserPreferencesManager(this)
+
         findViewById<Button>(R.id.btn_next).setOnClickListener {
-            val intent = Intent(this, RecipeDiscoveryActivity::class.java)
-            startActivity(intent)
+            lifecycleScope.launch {
+                prefs.saveCurrentStep(2)
+                val intent = Intent(this@OnboardingActivity, RecipeDiscoveryActivity::class.java)
+                startActivity(intent)
+            }
         }
 
         findViewById<TextView>(R.id.btn_skip).setOnClickListener {
-            val intent = Intent(this, HealthProfileActivity::class.java)
-            startActivity(intent)
-            finishAffinity() // Clear onboarding stack
+            lifecycleScope.launch {
+                prefs.saveCurrentStep(5)
+                val intent = Intent(this@OnboardingActivity, HealthProfileActivity::class.java)
+                startActivity(intent)
+            }
         }
     }
 }

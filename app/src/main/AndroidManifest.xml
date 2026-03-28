@@ -2,14 +2,18 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.WRITE_SETTINGS"
         tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
 
     <application
+        android:hardwareAccelerated="true"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -18,66 +22,74 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Cookgpt">
+
+        <!-- ══ ENTRY POINT — only this activity has LAUNCHER ══ -->
         <activity
-            android:name=".MainActivity"
+            android:name=".SplashActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity
-            android:name=".OnboardingActivity"
-            android:exported="false" />
-        <activity
-            android:name=".RecipeDiscoveryActivity"
-            android:exported="false" />
-        <activity
-            android:name=".NutritionAnalysisActivity"
-            android:exported="false" />
-        <activity
-            android:name=".GroceryShoppingActivity"
-            android:exported="false" />
-        <activity
-            android:name=".HealthProfileActivity"
-            android:exported="false" />
-        <activity
-            android:name=".BodyMetricsActivity"
-            android:exported="false" />
-        <activity
-            android:name=".FitnessGoalActivity"
-            android:exported="false" />
-        <activity
-            android:name=".AllergiesRestrictionsActivity"
-            android:exported="false" />
-        <activity
-            android:name=".HomeActivity"
-            android:exported="false" />
-        <activity
-            android:name=".AboutUsActivity"
-            android:exported="false" />
-        <activity
-            android:name=".ProjectDescriptionActivity"
-            android:exported="false" />
-        <activity
-            android:name=".TeamDetailsActivity"
-            android:exported="false" />
-        <activity
-            android:name=".SettingsActivity"
-            android:exported="false" />
-        <activity
-            android:name=".PrepReminderActivity"
-            android:exported="false" />
-        <activity
-            android:name=".MealPlannerActivity"
-            android:exported="false" />
-        <activity
-            android:name=".LocalFlavorActivity"
-            android:exported="false" />
-        <activity
-            android:name=".IngredientFinderActivity"
-            android:exported="false" />
+
+        <!-- ── Auth screens ── -->
+        <activity android:name=".LoginActivity"    android:exported="false" />
+        <activity android:name=".RegisterActivity" android:exported="false" />
+
+        <!-- ── Onboarding flow ── -->
+        <activity android:name=".RecipeDiscoveryActivity"   android:exported="false" />
+        <activity android:name=".NutritionAnalysisActivity" android:exported="false" />
+        <activity android:name=".GroceryShoppingActivity"   android:exported="false" />
+
+        <!-- ── Profile setup ── -->
+        <activity android:name=".HealthProfileActivity"          android:exported="false" />
+        <activity android:name=".BodyMetricsActivity"            android:exported="false" />
+        <activity android:name=".FitnessGoalActivity"            android:exported="false" />
+        <activity android:name=".AllergiesRestrictionsActivity"  android:exported="false" />
+
+        <!-- ── Main app ── -->
+        <activity android:name=".HomeActivity"     android:exported="false" />
+        <activity android:name=".SettingsActivity" android:exported="false" />
+
+        <!-- ── Feature screens ── -->
+        <activity android:name=".DiscoverActivity"         android:exported="false" android:configChanges="orientation|screenSize|keyboardHidden" />
+        <activity android:name=".DiscoverRecipesActivity"  android:exported="false" />
+        <activity android:name=".RecipeDetailsActivity"     android:exported="false" android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout" />
+        <activity android:name=".SavedRecipesActivity"      android:exported="false" />
+        <activity android:name=".PrepReminderActivity"      android:exported="false" />
+        <activity android:name=".MealPlannerActivity"       android:exported="false" />
+        <activity android:name=".LocalFlavorActivity"       android:exported="false" />
+        <activity android:name=".IngredientFinderActivity"  android:exported="false" />
+
+        <!-- ── Info screens ── -->
+        <activity android:name=".AboutUsActivity"           android:exported="false" />
+        <activity android:name=".ProjectDescriptionActivity" android:exported="false" />
+        <activity android:name=".TeamDetailsActivity"       android:exported="false" />
+
+        <!-- ── Profile edit ── -->
+        <activity android:name=".RegistrationActivity" android:exported="false" />
+        <activity android:name=".ProfileActivity"      android:exported="false" />
+
+        <!-- ── Legacy / misc ── -->
+        <activity android:name=".MainActivity"    android:exported="false" />
+        <activity android:name=".OnboardingActivity" android:exported="false" />
+
+        <!-- ── My Recipes feature ── -->
+        <activity android:name=".ui.MyRecipesActivity"           android:exported="false" />
+        <activity android:name=".ui.CreateRecipeActivity"         android:exported="false" />
+        <activity android:name=".ui.CustomRecipeDetailActivity"   android:exported="false" />
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.provider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_provider_paths" />
+        </provider>
+
     </application>
 
 </manifest>

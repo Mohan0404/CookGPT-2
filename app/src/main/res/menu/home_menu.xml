@@ -12,7 +12,5 @@
     <item
         android:id="@+id/menu_test_notification"
         android:title="Test Notification" />
-    <item
-        android:id="@+id/menu_logout"
-        android:title="Logout" />
+    <!-- Logout intentionally removed — accessible only from SettingsActivity -->
 </menu>

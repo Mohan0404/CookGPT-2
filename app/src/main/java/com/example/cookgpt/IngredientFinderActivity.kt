@@ -1,205 +1,149 @@
 package com.example.cookgpt
 
 import android.Manifest
-import android.content.pm.PackageManager
-import android.location.Address
-import android.location.Geocoder
+import android.content.Intent
+import android.content.SharedPreferences
 import android.location.Location
+import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import android.view.View
-import android.widget.Button
-import android.widget.EditText
-import android.widget.ProgressBar
-import android.widget.TextView
-import android.widget.Toast
+import android.widget.*
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
-import java.util.*
-import kotlin.math.*
-
-data class SampleStore(val name: String, val latitude: Double, val longitude: Double, val address: String)
+import java.util.Locale
 
 class IngredientFinderActivity : AppCompatActivity() {
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
-    private lateinit var etStoreName: EditText
-    private lateinit var tvStoreResult: TextView
-    private lateinit var tvDistanceResult: TextView
-    private lateinit var tvAddressResult: TextView
+    private lateinit var prefs: SharedPreferences
+    private lateinit var tvStatus: TextView
+    private lateinit var switchUnit: Switch
+    private lateinit var etCityFallback: EditText
+    private lateinit var btnFind: Button
+    private lateinit var btnFindByCity: Button
     private lateinit var pbLoading: ProgressBar
-    private lateinit var cardResult: View
 
-    private var userLocation: Location? = null
+    private var isMetric: Boolean = true
+    private var lastKnownLocation: Location? = null
 
-    // Sample stores at different global locations
-    private val sampleStores = listOf(
-        SampleStore("Whole Foods Market", 40.7812, -73.9665, "10 Columbus Cir, New York, NY 10019"),
-        SampleStore("Trader Joe's", 34.0195, -118.4912, "500 Broadway, Santa Monica, CA 90401"),
-        SampleStore("Tesco Express", 51.5072, -0.1276, "Charing Cross, London WC2N 5HS, UK"),
-        SampleStore("Local Veggie Stand", 35.6895, 139.6917, "2-8-1 Nishi-Shinjuku, Shinjuku, Tokyo"),
-        SampleStore("Healthy Greens", 1.2902, 103.8519, "City Hall, Singapore"),
-        SampleStore("Organic Haven", -33.8688, 151.2093, "Sydney CBD, NSW, Australia"),
-        // Additional "Nearby" mock stores (assumes user might be testing in common dev locations)
-        SampleStore("Quick Mart", 12.9716, 77.5946, "MG Road, Bangalore, India"),
-        SampleStore("Convenience Plus", 37.7749, -122.4194, "Market St, San Francisco, CA"),
-        SampleStore("Green Grocers", 48.8566, 2.3522, "Rue de Rivoli, Paris, France")
-    )
+    // Modern permission launcher (replaces deprecated requestPermissions)
+    private val locationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            fetchLocationAndOpenMaps()
+        } else {
+            showCityFallback()
+            Toast.makeText(this, "Location permission denied — enter your city below", Toast.LENGTH_LONG).show()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_ingredient_finder)
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+        prefs = getSharedPreferences("ingredient_finder_prefs", MODE_PRIVATE)
+
+        // Detect locale default unit; allow user to override
+        isMetric = !Locale.getDefault().country.equals("US", ignoreCase = true)
+        val savedUnit = prefs.getString("distance_unit", null)
+        if (savedUnit != null) isMetric = savedUnit == "km"
+
+        tvStatus        = findViewById(R.id.tv_status)
+        switchUnit      = findViewById(R.id.switch_unit)
+        etCityFallback  = findViewById(R.id.et_city_fallback)
+        btnFind         = findViewById(R.id.btn_find_store)
+        btnFindByCity   = findViewById(R.id.btn_find_by_city)
+        pbLoading       = findViewById(R.id.pb_loading)
+
+        switchUnit.isChecked = isMetric
+        switchUnit.text = if (isMetric) "Kilometres" else "Miles"
+
+        switchUnit.setOnCheckedChangeListener { _, checked ->
+            isMetric = checked
+            switchUnit.text = if (isMetric) "Kilometres" else "Miles"
+            prefs.edit().putString("distance_unit", if (isMetric) "km" else "mi").apply()
+        }
+
+        btnFind.setOnClickListener {
+            pbLoading.visibility = View.VISIBLE
+            tvStatus.text = "Requesting location…"
+            tvStatus.visibility = View.VISIBLE
+            // Always request fresh permission via modern launcher
+            locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+
+        btnFindByCity.setOnClickListener {
+            val city = etCityFallback.text.toString().trim()
+            if (city.isEmpty()) {
+                Toast.makeText(this, "Enter your city name first", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            openMapsForCity(city)
+        }
 
         findViewById<View>(R.id.btn_back).setOnClickListener { finish() }
-        etStoreName = findViewById(R.id.et_store_name)
-        tvStoreResult = findViewById(R.id.tv_store_result)
-        tvDistanceResult = findViewById(R.id.tv_distance_result)
-        tvAddressResult = findViewById(R.id.tv_address_result)
-        pbLoading = findViewById(R.id.pb_loading)
-        cardResult = findViewById(R.id.card_result)
-
-        val btnFind = findViewById<Button>(R.id.btn_find_store)
-        btnFind.setOnClickListener {
-            val store = etStoreName.text.toString()
-            if (store.isNotEmpty()) {
-                findStore(store)
-            } else {
-                // If input is empty, find the ABSOLUTE closest store from our sample list
-                findClosestSampleStore()
-            }
-        }
-
-        requestLocation()
     }
 
-    private fun requestLocation() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 101)
-            return
-        }
-        fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
-            userLocation = location
-        }
-    }
-
-    private fun findStore(storeName: String) {
-        if (userLocation == null) {
-            Toast.makeText(this, "Location not available. Please ensure GPS is on.", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        pbLoading.visibility = View.VISIBLE
-        cardResult.visibility = View.GONE
-
-        // 1. Check in Sample Stores first for an exact or partial match
-        val matchedStore = sampleStores.find { it.name.contains(storeName, ignoreCase = true) }
-        
-        if (matchedStore != null) {
-            displayStore(matchedStore.name, matchedStore.latitude, matchedStore.longitude, matchedStore.address)
-        } else {
-            // 2. Fallback to Geocoder for real stores
-            performGeocodeSearch(storeName)
-        }
-    }
-
-    private fun findClosestSampleStore() {
-        if (userLocation == null) {
-            Toast.makeText(this, "Detecting location... please try again in a moment.", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        pbLoading.visibility = View.VISIBLE
-        
-        var closestStore: SampleStore? = null
-        var minDistance = Double.MAX_VALUE
-
-        for (store in sampleStores) {
-            val dist = calculateDistance(userLocation!!.latitude, userLocation!!.longitude, store.latitude, store.longitude)
-            if (dist < minDistance) {
-                minDistance = dist
-                closestStore = store
-            }
-        }
-
-        if (closestStore != null) {
-            displayStore(closestStore.name, closestStore.latitude, closestStore.longitude, closestStore.address)
-            Toast.makeText(this, "Found the closest sample store!", Toast.LENGTH_SHORT).show()
-        } else {
-            pbLoading.visibility = View.GONE
-        }
-    }
-
-    private fun performGeocodeSearch(storeName: String) {
-        val geocoder = Geocoder(this, Locale.getDefault())
+    private fun fetchLocationAndOpenMaps() {
         try {
-            if (android.os.Build.VERSION.SDK_INT >= 33) {
-                geocoder.getFromLocationName(storeName, 1, object : Geocoder.GeocodeListener {
-                    override fun onGeocode(addresses: MutableList<Address>) {
-                        runOnUiThread {
-                            if (!addresses.isNullOrEmpty()) {
-                                val addr = addresses[0]
-                                displayStore(storeName, addr.latitude, addr.longitude, addr.getAddressLine(0) ?: "Address not found")
-                            } else {
-                                Toast.makeText(this@IngredientFinderActivity, "Store not found locally or globally", Toast.LENGTH_SHORT).show()
-                                pbLoading.visibility = View.GONE
-                            }
-                        }
-                    }
-                    override fun onError(errorMessage: String?) {
-                        runOnUiThread {
-                            Toast.makeText(this@IngredientFinderActivity, "Search error: $errorMessage", Toast.LENGTH_SHORT).show()
-                            pbLoading.visibility = View.GONE
-                        }
-                    }
-                })
-            } else {
-                @Suppress("DEPRECATION")
-                val addresses = geocoder.getFromLocationName(storeName, 1)
-                if (!addresses.isNullOrEmpty()) {
-                    val addr = addresses[0]
-                    displayStore(storeName, addr.latitude, addr.longitude, addr.getAddressLine(0) ?: "Address not found")
+            fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
+                pbLoading.visibility = View.GONE
+                if (location != null) {
+                    lastKnownLocation = location
+                    Log.d("IngredientFinder", "Got location: ${location.latitude}, ${location.longitude}")
+                    tvStatus.text = "Opening Google Maps for nearby stores…"
+                    openMapsWithCoords(location.latitude, location.longitude)
                 } else {
-                    Toast.makeText(this, "Store not found", Toast.LENGTH_SHORT).show()
-                    pbLoading.visibility = View.GONE
+                    tvStatus.text = "Could not get GPS fix — enter city below"
+                    showCityFallback()
+                    Toast.makeText(this, "GPS not available — please enter your city", Toast.LENGTH_LONG).show()
                 }
+            }.addOnFailureListener { e ->
+                pbLoading.visibility = View.GONE
+                Log.e("IngredientFinder", "Location fetch failed: ${e.localizedMessage}")
+                tvStatus.text = "Location error — enter city below"
+                showCityFallback()
             }
-        } catch (e: Exception) {
-            Toast.makeText(this, "Search error", Toast.LENGTH_SHORT).show()
+        } catch (e: SecurityException) {
             pbLoading.visibility = View.GONE
+            Log.e("IngredientFinder", "Permission missing: ${e.localizedMessage}")
+            showCityFallback()
         }
     }
 
-    private fun displayStore(name: String, lat: Double, lng: Double, address: String) {
-        val distance = calculateDistance(
-            userLocation!!.latitude, userLocation!!.longitude,
-            lat, lng
-        )
-
-        tvStoreResult.text = name
-        tvDistanceResult.text = "${String.format(Locale.getDefault(), "%.1f", distance)} miles away"
-        tvAddressResult.text = address
-        cardResult.visibility = View.VISIBLE
-        pbLoading.visibility = View.GONE
+    /**
+     * TASK 2: Opens Google Maps showing real nearby grocery stores — no API key required.
+     * The zoom level 15z shows a ~1 km radius.
+     */
+    private fun openMapsWithCoords(lat: Double, lng: Double) {
+        val mapsUrl = "https://www.google.com/maps/search/grocery+store/@$lat,$lng,15z"
+        openMapsUrl(mapsUrl)
     }
 
-    private fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
-        val r = 3958.8 // Radius of the earth in miles
-        val dLat = Math.toRadians(lat2 - lat1)
-        val dLon = Math.toRadians(lon2 - lon1)
-        val a = sin(dLat / 2).pow(2) +
-                cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) *
-                sin(dLon / 2).pow(2)
-        val c = 2 * atan2(sqrt(a), sqrt(1 - a))
-        return r * c
+    private fun openMapsForCity(city: String) {
+        val encoded = Uri.encode("grocery store in $city")
+        val mapsUrl = "https://www.google.com/maps/search/$encoded"
+        openMapsUrl(mapsUrl)
     }
 
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == 101 && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            requestLocation()
+    private fun openMapsUrl(url: String) {
+        Log.d("IngredientFinder", "Opening Maps: $url")
+        try {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+        } catch (e: Exception) {
+            Log.e("IngredientFinder", "Could not open Maps: ${e.localizedMessage}")
+            Toast.makeText(this, "Could not open Google Maps", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    private fun showCityFallback() {
+        pbLoading.visibility   = View.GONE
+        etCityFallback.visibility = View.VISIBLE
+        btnFindByCity.visibility  = View.VISIBLE
     }
 }
