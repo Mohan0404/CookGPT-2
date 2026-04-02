@@ -56,6 +56,31 @@
             android:textColorHint="#9CA3AF"
             android:textSize="15sp" />
 
+        <!-- Phone Number Field -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="6dp"
+            android:text="Phone Number"
+            android:textColor="#374151"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/etPhone"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginBottom="16dp"
+            android:background="@drawable/edit_text_bg"
+            android:hint="+1 123 456 7890"
+            android:inputType="phone"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:singleLine="true"
+            android:textColor="#1A1A1A"
+            android:textColorHint="#9CA3AF"
+            android:textSize="15sp" />
+
         <!-- Password Field -->
         <TextView
             android:layout_width="wrap_content"

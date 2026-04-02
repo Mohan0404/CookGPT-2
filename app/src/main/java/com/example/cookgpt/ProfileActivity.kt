@@ -18,6 +18,7 @@ class ProfileActivity : AppCompatActivity() {
         }
 
         val tvName = findViewById<TextView>(R.id.tv_profile_name)
+        val tvPhone = findViewById<TextView>(R.id.tv_profile_phone)
         val tvStats = findViewById<TextView>(R.id.tv_profile_stats)
         val tvGender = findViewById<TextView>(R.id.tv_profile_gender)
         val tvPrefs = findViewById<TextView>(R.id.tv_profile_preferences)
@@ -29,6 +30,7 @@ class ProfileActivity : AppCompatActivity() {
             val user = db.userDao().getUser()
             if (user != null) {
                 tvName.text = user.name
+                tvPhone.text = if (user.phoneNumber.isNotEmpty()) "Phone: ${user.phoneNumber}" else "Phone: Not set"
                 tvStats.text = "Age: ${user.age} | ${user.weight}kg | ${user.height}cm"
                 tvGender.text = "Gender: ${user.gender}"
                 tvPrefs.text = if (user.preferences.isNotEmpty()) user.preferences else "No preferences set."

@@ -2,14 +2,18 @@ package com.example.cookgpt
 
 import android.content.Context
 import android.content.Intent
+import android.media.MediaPlayer
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.view.WindowManager
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
+import android.widget.VideoView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.example.cookgpt.data.RecipeDatabaseHelper
@@ -24,13 +28,20 @@ class LoginActivity : AppCompatActivity() {
     private lateinit var progressBar: ProgressBar
     private lateinit var tvStatus: TextView
     private lateinit var btnLogin: Button
+    private lateinit var videoViewBg: VideoView
+    private var mediaPlayerClick: MediaPlayer? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // Make it full screen by hiding the status bar
+        window.setFlags(
+            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+        )
+
         auth = FirebaseAuth.getInstance()
 
-        // If already fully logged in skip straight to HomeActivity
         if (auth.currentUser != null && SessionManager.isLoggedIn(this)) {
             startActivity(Intent(this, HomeActivity::class.java))
             finish()
@@ -42,13 +53,66 @@ class LoginActivity : AppCompatActivity() {
         progressBar = findViewById(R.id.progressBar)
         tvStatus    = findViewById(R.id.tvStatus)
         btnLogin    = findViewById(R.id.btnLogin)
+        videoViewBg  = findViewById(R.id.videoViewBg)
+
+        setupBackgroundVideo()
+        
+        mediaPlayerClick = MediaPlayer.create(this, R.raw.btn_click)
 
         findViewById<TextView>(R.id.tvRegister).setOnClickListener {
+            playClickSound()
             startActivity(Intent(this, RegisterActivity::class.java))
             finish()
         }
 
-        btnLogin.setOnClickListener { handleLogin() }
+        btnLogin.setOnClickListener { 
+            playClickSound()
+            handleLogin() 
+        }
+    }
+
+    private fun setupBackgroundVideo() {
+        val videoPath = "android.resource://" + packageName + "/" + R.raw.bg_video
+        val uri = Uri.parse(videoPath)
+        videoViewBg.setVideoURI(uri)
+        videoViewBg.setOnPreparedListener { mp ->
+            mp.isLooping = true
+            
+            // Calculate video and screen aspect ratios
+            val videoWidth = mp.videoWidth.toFloat()
+            val videoHeight = mp.videoHeight.toFloat()
+            val videoRatio = videoWidth / videoHeight
+            
+            val screenWidth = videoViewBg.width.toFloat()
+            val screenHeight = videoViewBg.height.toFloat()
+            val screenRatio = screenWidth / screenHeight
+
+            // Scale the video to cover the entire screen (Center Crop effect)
+            if (videoRatio > screenRatio) {
+                // Video is wider than screen
+                videoViewBg.scaleX = videoRatio / screenRatio
+            } else {
+                // Video is taller than screen
+                videoViewBg.scaleY = screenRatio / videoRatio
+            }
+
+            videoViewBg.start()
+        }
+    }
+
+    private fun playClickSound() {
+        mediaPlayerClick?.start()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        videoViewBg.start()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        mediaPlayerClick?.release()
+        mediaPlayerClick = null
     }
 
     private fun handleLogin() {
@@ -68,11 +132,9 @@ class LoginActivity : AppCompatActivity() {
                 Log.d("LoginActivity", "Sign-in success. UID=$uid")
                 SessionManager.setLogin(this, uid)
 
-                // Show restore status while fetching data from Firebase
                 setLoading(true, "Restoring your data…")
 
                 fetchAndRestoreUserData(uid) {
-                    // onComplete is called on a background thread — must post to UI
                     runOnUiThread {
                         setLoading(false)
                         val intent = Intent(this, HomeActivity::class.java)
@@ -89,12 +151,6 @@ class LoginActivity : AppCompatActivity() {
             }
     }
 
-    /**
-     * Dual-flag pattern: both profile AND recipes must complete before onComplete() fires.
-     * Restores from CORRECT paths:
-     *   profile → /users/{uid}/
-     *   recipes → /users/{uid}/saved_recipes/
-     */
     private fun fetchAndRestoreUserData(uid: String, onComplete: () -> Unit) {
         val db       = FirebaseDatabase.getInstance().reference
         val prefs    = getSharedPreferences("user_data", Context.MODE_PRIVATE)
@@ -107,10 +163,8 @@ class LoginActivity : AppCompatActivity() {
             if (profileDone && recipesDone) onComplete()
         }
 
-        // ── Restore profile from /users/{uid}/ ─────────────────────────────
         db.child("users").child(uid).get()
             .addOnSuccessListener { snapshot ->
-                Log.d("Restore", "Profile snapshot received: ${snapshot.value}")
                 val restoredName = snapshot.child("name").getValue(String::class.java) ?: ""
                 prefs.edit()
                     .putString("name",      restoredName)
@@ -123,7 +177,6 @@ class LoginActivity : AppCompatActivity() {
                     .putString("email",     snapshot.child("email").getValue(String::class.java)
                         ?: auth.currentUser?.email ?: "")
                     .apply()
-                // TASK 9: Populate DataStore so HomeActivity greeting shows real name
                 if (restoredName.isNotEmpty()) {
                     lifecycleScope.launch {
                         UserPreferencesManager(this@LoginActivity).saveUserName(restoredName)
@@ -133,44 +186,32 @@ class LoginActivity : AppCompatActivity() {
                 checkCompletion()
             }
             .addOnFailureListener { e ->
-                Log.e("Restore", "Profile restore failed: ${e.localizedMessage}")
                 profileDone = true
                 checkCompletion()
             }
 
-        // ── Restore recipes from /users/{uid}/saved_recipes/ ───────────────
         db.child("users").child(uid).child("saved_recipes").get()
             .addOnSuccessListener { snapshot ->
-                Log.d("Restore", "Recipe snapshot exists=${snapshot.exists()}, count=${snapshot.childrenCount}")
-
                 dbHelper.clearAllRecipes()
-
                 if (!snapshot.exists() || !snapshot.hasChildren()) {
-                    Log.d("Restore", "No saved recipes in Firebase for uid=$uid")
                     recipesDone = true
                     checkCompletion()
                     return@addOnSuccessListener
                 }
-
                 for (child in snapshot.children) {
                     try {
                         val recipe = child.getValue(SavedRecipe::class.java)
                         if (recipe != null) {
                             dbHelper.insertRecipe(recipe, uid)
-                            Log.d("Restore", "Restored recipe: id=${recipe.id} title=${recipe.title}")
-                        } else {
-                            Log.w("Restore", "Firebase returned null for recipe key=${child.key}")
                         }
                     } catch (e: Exception) {
-                        Log.e("Restore", "Failed to parse recipe key=${child.key}: ${e.localizedMessage}")
+                        Log.e("Restore", "Failed to parse recipe: ${e.localizedMessage}")
                     }
                 }
-
                 recipesDone = true
                 checkCompletion()
             }
             .addOnFailureListener { e ->
-                Log.e("Restore", "Recipe restore failed: ${e.localizedMessage}")
                 recipesDone = true
                 checkCompletion()
             }

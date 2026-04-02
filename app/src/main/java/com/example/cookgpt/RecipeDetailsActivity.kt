@@ -1,6 +1,12 @@
 package com.example.cookgpt
 
+import android.Manifest
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
+import android.telephony.SmsManager
 import android.util.Log
 import android.view.View
 import android.widget.ImageView
@@ -9,6 +15,8 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.example.cookgpt.data.*
@@ -16,6 +24,7 @@ import com.example.cookgpt.data.*
 import com.google.android.material.button.MaterialButton
 import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import retrofit2.Call
@@ -42,12 +51,14 @@ class RecipeDetailsActivity : AppCompatActivity() {
 
     private val apiService = ApiService.create()
 
-
-    private val youtubeApiKey: String by lazy { BuildConfig.YOUTUBE_API_KEY }
-
     private lateinit var dbHelper: RecipeDatabaseHelper
     private var currentRecipe: RecipeDetail? = null
     private var isSaved = false
+    private var pendingRecipeToNotify: SavedRecipe? = null
+
+    companion object {
+        private const val SMS_PERMISSION_CODE = 101
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -75,7 +86,6 @@ class RecipeDetailsActivity : AppCompatActivity() {
 
         if (recipe == null) {
             Log.e("Navigation", "ERROR: Recipe object is null! Not finishing to show fallback UI.")
-            // Keep empty fallback UI, don't finish
         } else {
             val recipeId = recipe.id
             checkIfSaved(recipeId)
@@ -129,12 +139,138 @@ class RecipeDetailsActivity : AppCompatActivity() {
                         ingredientsString,
                         recipe.instructions ?: ""
                     )
+                    
                     dbHelper.insertRecipe(savedRecipe, userId)
                     saveToFirebase(userId, savedRecipe)
                     isSaved = true
                     Toast.makeText(this@RecipeDetailsActivity, "Recipe Saved ✅", Toast.LENGTH_SHORT).show()
+                    
+                    // Request permission and then send notification
+                    pendingRecipeToNotify = savedRecipe
+                    checkSmsPermissionAndNotify()
                 }
                 updateSaveButtonUI()
+            }
+        }
+    }
+
+    private fun checkSmsPermissionAndNotify() {
+        Log.d("RecipeDetails", "checkSmsPermissionAndNotify triggered")
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED) {
+            Log.d("RecipeDetails", "SMS permission NOT granted, requesting now...")
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.SEND_SMS), SMS_PERMISSION_CODE)
+        } else {
+            Log.d("RecipeDetails", "SMS permission already GRANTED")
+            pendingRecipeToNotify?.let {
+                lifecycleScope.launch { sendRecipeNotifications(it) }
+            }
+        }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == SMS_PERMISSION_CODE) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                Log.d("RecipeDetails", "SMS permission GRANTED by user")
+                pendingRecipeToNotify?.let {
+                    lifecycleScope.launch { sendRecipeNotifications(it) }
+                }
+            } else {
+                Log.d("RecipeDetails", "SMS permission DENIED by user")
+                Toast.makeText(this, "SMS permission denied. Falling back to WhatsApp.", Toast.LENGTH_SHORT).show()
+                pendingRecipeToNotify?.let {
+                    lifecycleScope.launch { openWhatsApp(it) }
+                }
+            }
+        }
+    }
+
+    private suspend fun getTargetPhoneNumber(): String {
+        val db = AppDatabase.getDatabase(this)
+        val user = withContext(Dispatchers.IO) { db.userDao().getUser() }
+        val sqlitePhone = user?.phoneNumber ?: ""
+        
+        val spPhone = getSharedPreferences("user_data", Context.MODE_PRIVATE).getString("phone", "") ?: ""
+        
+        val dsPhone = try {
+            UserPreferencesManager(this).userData.first().phoneNumber
+        } catch (e: Exception) { "" }
+        
+        val result = sqlitePhone.ifEmpty { spPhone.ifEmpty { dsPhone } }
+        Log.d("RecipeDetails", "Phone Lookup Results: Room=$sqlitePhone, SP=$spPhone, DataStore=$dsPhone -> Final=$result")
+        return result
+    }
+
+    private suspend fun sendRecipeNotifications(recipe: SavedRecipe) {
+        withContext(Dispatchers.Main) {
+            Toast.makeText(this@RecipeDetailsActivity, "Preparing notifications...", Toast.LENGTH_SHORT).show()
+        }
+        
+        val phoneNumber = getTargetPhoneNumber()
+
+        if (phoneNumber.isEmpty()) {
+            withContext(Dispatchers.Main) {
+                Toast.makeText(this@RecipeDetailsActivity, "No phone number found in profile.", Toast.LENGTH_LONG).show()
+            }
+            return
+        }
+
+        val message = "Check out this recipe I found on CookGPT: ${recipe.title}\n\nIngredients:\n${recipe.ingredients.take(120)}...\n\nFull Recipe in CookGPT App!"
+
+        // 1. Send SMS
+        try {
+            val smsManager = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                this.getSystemService(SmsManager::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                SmsManager.getDefault()
+            }
+            
+            if (smsManager != null) {
+                val parts = smsManager.divideMessage(message)
+                smsManager.sendMultipartTextMessage(phoneNumber, null, parts, null, null)
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@RecipeDetailsActivity, "SMS sent to $phoneNumber", Toast.LENGTH_SHORT).show()
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("RecipeDetails", "SMS failed", e)
+            withContext(Dispatchers.Main) {
+                Toast.makeText(this@RecipeDetailsActivity, "SMS failed: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // 2. Open WhatsApp
+        withContext(Dispatchers.Main) {
+            openWhatsApp(recipe, phoneNumber)
+        }
+    }
+
+    private fun openWhatsApp(recipe: SavedRecipe, existingPhone: String? = null) {
+        lifecycleScope.launch {
+            val phoneNumber = existingPhone ?: getTargetPhoneNumber()
+            
+            if (phoneNumber.isNotEmpty()) {
+                val cleanPhone = phoneNumber.replace(Regex("[^0-9]"), "")
+                val message = "Check out this recipe: ${recipe.title}\n\nIngredients:\n${recipe.ingredients.take(120)}...\n\nImage: ${recipe.image}"
+                try {
+                    val intent = Intent(Intent.ACTION_VIEW)
+                    val uri = Uri.parse("https://api.whatsapp.com/send?phone=$cleanPhone&text=${Uri.encode(message)}")
+                    intent.data = uri
+                    intent.setPackage("com.whatsapp")
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    startActivity(intent)
+                } catch (e: Exception) {
+                    Log.e("WhatsApp", "Package check failed, trying browser-based wa.me", e)
+                    try {
+                        val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/$cleanPhone?text=${Uri.encode(message)}"))
+                        startActivity(browserIntent)
+                    } catch (e2: Exception) {
+                        Toast.makeText(this@RecipeDetailsActivity, "Could not open WhatsApp", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            } else {
+                Toast.makeText(this@RecipeDetailsActivity, "No phone number found for WhatsApp", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -200,8 +336,6 @@ class RecipeDetailsActivity : AppCompatActivity() {
         })
     }
     
-    // Video loading is handled by VideoPlayerManager + VideoRepository — no direct player code here.
-
     private fun displayRecipe(recipe: RecipeDetail?) {
         recipe?.let {
             tvDetailTitle.text = it.title
@@ -220,7 +354,6 @@ class RecipeDetailsActivity : AppCompatActivity() {
                 tvCarbs.text = formatNutrient("Carbohydrates")
             }
             
-            // Only load glide image if the youtube player isn't active
             Glide.with(this).load(it.image).into(ivDetailImage)
         }
     }

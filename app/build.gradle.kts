@@ -21,16 +21,25 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
+        // Load local.properties (where YouTube key is)
         val localProps = Properties()
         val localPropsFile = project.rootProject.file("local.properties")
         if (localPropsFile.exists()) {
             localProps.load(FileInputStream(localPropsFile))
         }
-        buildConfigField("String", "YOUTUBE_API_KEY", "\"${localProps.getProperty("YOUTUBE_API_KEY", "")}\"")
+        
+        // Use local.properties for YouTube Key
+        val youtubeKey = localProps.getProperty("YOUTUBE_API_KEY") ?: ""
+        buildConfigField("String", "YOUTUBE_API_KEY", "\"$youtubeKey\"")
+
+        // Use gradle.properties for Gemini Key (or fallback to local if present)
+        val geminiKey = project.findProperty("GEMINI_API_KEY") ?: localProps.getProperty("GEMINI_API_KEY") ?: ""
+        buildConfigField("String", "GEMINI_API_KEY", "\"$geminiKey\"")
     }
 
     buildFeatures {
         buildConfig = true
+        viewBinding = true
     }
 
     buildTypes {
@@ -68,22 +77,25 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
     implementation(libs.androidx.datastore.preferences)
 
-    // Coroutines (including play-services bridge for .await() on Firebase Tasks)
+    // Gemini AI
+    implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
+
+    // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
 
     // Youtube Player API
     implementation("com.pierfrancescosoffritti.androidyoutubeplayer:core:12.1.0")
 
-    // Chrome Custom Tabs — Layer-2 fallback when all embedded candidates fail
+    // Chrome Custom Tabs
     implementation("androidx.browser:browser:1.7.0")
 
-    // Firebase — single BOM pin, no version numbers on individual artifacts
+    // Firebase
     implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-database-ktx")
     implementation("com.google.firebase:firebase-storage-ktx")
-    // BuildConfig field for YouTube API key
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

@@ -26,6 +26,7 @@ class UserPreferencesManager(private val context: Context) {
         val USER_FITNESS_GOAL = stringPreferencesKey("user_fitness_goal")
         val USER_ALLERGIES = stringSetPreferencesKey("user_allergies")
         val USER_RESTRICTIONS = stringSetPreferencesKey("user_restrictions")
+        val USER_PHONE_NUMBER = stringPreferencesKey("user_phone_number")
     }
 
     val isOnboardingCompleted: Flow<Boolean> = context.dataStore.data.map { it[IS_ONBOARDING_COMPLETED] ?: false }
@@ -83,6 +84,10 @@ class UserPreferencesManager(private val context: Context) {
         }
     }
 
+    suspend fun savePhoneNumber(phone: String) {
+        context.dataStore.edit { it[USER_PHONE_NUMBER] = phone }
+    }
+
     suspend fun clearAllData() {
         context.dataStore.edit { it.clear() }
     }
@@ -90,13 +95,15 @@ class UserPreferencesManager(private val context: Context) {
     val userData: Flow<UserData> = context.dataStore.data.map { prefs ->
         UserData(
             name = prefs[USER_NAME] ?: "",
+            email = prefs[USER_EMAIL] ?: "",
             gender = prefs[USER_GENDER] ?: "",
             age = prefs[USER_AGE] ?: 0,
             weight = prefs[USER_WEIGHT] ?: 0f,
             height = prefs[USER_HEIGHT] ?: 0f,
             fitnessGoal = prefs[USER_FITNESS_GOAL] ?: "",
             allergies = prefs[USER_ALLERGIES] ?: emptySet(),
-            restrictions = prefs[USER_RESTRICTIONS] ?: emptySet()
+            restrictions = prefs[USER_RESTRICTIONS] ?: emptySet(),
+            phoneNumber = prefs[USER_PHONE_NUMBER] ?: ""
         )
     }
 
@@ -105,11 +112,13 @@ class UserPreferencesManager(private val context: Context) {
 
 data class UserData(
     val name: String,
+    val email: String,
     val gender: String,
     val age: Int,
     val weight: Float,
     val height: Float,
     val fitnessGoal: String,
     val allergies: Set<String>,
-    val restrictions: Set<String>
+    val restrictions: Set<String>,
+    val phoneNumber: String = ""
 )

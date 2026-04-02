@@ -11,8 +11,12 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.SEND_SMS" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application
+        android:name=".CookGPTApp"
         android:hardwareAccelerated="true"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -23,7 +27,6 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Cookgpt">
 
-        <!-- ══ ENTRY POINT — only this activity has LAUNCHER ══ -->
         <activity
             android:name=".SplashActivity"
             android:exported="true">
@@ -33,26 +36,17 @@
             </intent-filter>
         </activity>
 
-        <!-- ── Auth screens ── -->
         <activity android:name=".LoginActivity"    android:exported="false" />
         <activity android:name=".RegisterActivity" android:exported="false" />
-
-        <!-- ── Onboarding flow ── -->
         <activity android:name=".RecipeDiscoveryActivity"   android:exported="false" />
         <activity android:name=".NutritionAnalysisActivity" android:exported="false" />
         <activity android:name=".GroceryShoppingActivity"   android:exported="false" />
-
-        <!-- ── Profile setup ── -->
         <activity android:name=".HealthProfileActivity"          android:exported="false" />
         <activity android:name=".BodyMetricsActivity"            android:exported="false" />
         <activity android:name=".FitnessGoalActivity"            android:exported="false" />
         <activity android:name=".AllergiesRestrictionsActivity"  android:exported="false" />
-
-        <!-- ── Main app ── -->
         <activity android:name=".HomeActivity"     android:exported="false" />
         <activity android:name=".SettingsActivity" android:exported="false" />
-
-        <!-- ── Feature screens ── -->
         <activity android:name=".DiscoverActivity"         android:exported="false" android:configChanges="orientation|screenSize|keyboardHidden" />
         <activity android:name=".DiscoverRecipesActivity"  android:exported="false" />
         <activity android:name=".RecipeDetailsActivity"     android:exported="false" android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout" />
@@ -61,24 +55,20 @@
         <activity android:name=".MealPlannerActivity"       android:exported="false" />
         <activity android:name=".LocalFlavorActivity"       android:exported="false" />
         <activity android:name=".IngredientFinderActivity"  android:exported="false" />
-
-        <!-- ── Info screens ── -->
         <activity android:name=".AboutUsActivity"           android:exported="false" />
         <activity android:name=".ProjectDescriptionActivity" android:exported="false" />
         <activity android:name=".TeamDetailsActivity"       android:exported="false" />
-
-        <!-- ── Profile edit ── -->
         <activity android:name=".RegistrationActivity" android:exported="false" />
         <activity android:name=".ProfileActivity"      android:exported="false" />
-
-        <!-- ── Legacy / misc ── -->
         <activity android:name=".MainActivity"    android:exported="false" />
         <activity android:name=".OnboardingActivity" android:exported="false" />
-
-        <!-- ── My Recipes feature ── -->
         <activity android:name=".ui.MyRecipesActivity"           android:exported="false" />
         <activity android:name=".ui.CreateRecipeActivity"         android:exported="false" />
         <activity android:name=".ui.CustomRecipeDetailActivity"   android:exported="false" />
+
+        <activity android:name=".AiChefActivity" android:exported="false" />
+
+        <service android:name=".FloatingPantryService" android:exported="false" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

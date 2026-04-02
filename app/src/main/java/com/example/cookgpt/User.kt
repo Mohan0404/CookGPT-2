@@ -12,5 +12,6 @@ data class User(
     val height: Float = 0f,
     val gender: String = "",
     val goal: String = "",
-    val preferences: String = "" // Allergies and restrictions
+    val preferences: String = "", // Allergies and restrictions
+    val phoneNumber: String = "" // Added phone number field
 )

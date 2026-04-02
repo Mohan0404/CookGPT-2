@@ -1,18 +1,30 @@
 package com.example.cookgpt
 
+import android.Manifest
 import android.app.DatePickerDialog
 import android.app.NotificationManager
 import android.app.TimePickerDialog
 import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
+import android.telephony.SmsManager
 import android.util.Log
 import android.view.LayoutInflater
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import androidx.work.Data
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.*
 import java.util.concurrent.TimeUnit
 
@@ -22,6 +34,11 @@ class PrepReminderActivity : AppCompatActivity() {
     private lateinit var tvSelectedDateTime: TextView
     private lateinit var prefs: android.content.SharedPreferences
     private lateinit var llReminders: LinearLayout
+    private var pendingReminderInfo: Pair<String, String>? = null
+
+    companion object {
+        private const val SMS_PERMISSION_CODE = 102
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -92,21 +109,104 @@ class PrepReminderActivity : AppCompatActivity() {
 
         WorkManager.getInstance(this).enqueue(workRequest)
 
-        // TASK 7: Persist the WorkManager ID and label so we can list + cancel it later
         val workId       = workRequest.id.toString()
         val reminderLabel = "$recipeName — ${tvSelectedDateTime.text}"
         prefs.edit()
             .putString("reminder_${recipeName}_id",    workId)
             .putString("reminder_${recipeName}_label", reminderLabel)
             .apply()
-        Log.d("PrepReminder", "Scheduled reminder '$reminderLabel' id=$workId delay=${delay}ms")
-
+        
         showConfirmationNotification(recipeName, tvSelectedDateTime.text.toString())
-        Toast.makeText(this, "Reminder set for $prepHours hours before cooking!", Toast.LENGTH_LONG).show()
+        Toast.makeText(this, "Reminder set for $prepHours hours before!", Toast.LENGTH_LONG).show()
+        
+        // New: Trigger SMS and WhatsApp
+        pendingReminderInfo = Pair(recipeName, tvSelectedDateTime.text.toString())
+        checkSmsPermissionAndNotify()
+        
         loadScheduledReminders()
     }
 
-    // TASK 7: Load and display all scheduled reminders as cards with Cancel button
+    private fun checkSmsPermissionAndNotify() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.SEND_SMS), SMS_PERMISSION_CODE)
+        } else {
+            pendingReminderInfo?.let {
+                lifecycleScope.launch { sendPrepNotifications(it.first, it.second) }
+            }
+        }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == SMS_PERMISSION_CODE) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                pendingReminderInfo?.let {
+                    lifecycleScope.launch { sendPrepNotifications(it.first, it.second) }
+                }
+            } else {
+                Toast.makeText(this, "SMS permission denied. Falling back to WhatsApp.", Toast.LENGTH_SHORT).show()
+                pendingReminderInfo?.let {
+                    lifecycleScope.launch { openWhatsApp(it.first, it.second) }
+                }
+            }
+        }
+    }
+
+    private suspend fun getTargetPhoneNumber(): String {
+        val db = AppDatabase.getDatabase(this)
+        val user = withContext(Dispatchers.IO) { db.userDao().getUser() }
+        val sqlitePhone = user?.phoneNumber ?: ""
+        val spPhone = getSharedPreferences("user_data", Context.MODE_PRIVATE).getString("phone", "") ?: ""
+        val dsPhone = try { UserPreferencesManager(this).userData.first().phoneNumber } catch (e: Exception) { "" }
+        return sqlitePhone.ifEmpty { spPhone.ifEmpty { dsPhone } }
+    }
+
+    private suspend fun sendPrepNotifications(recipeName: String, dateTime: String) {
+        val phoneNumber = getTargetPhoneNumber()
+        if (phoneNumber.isEmpty()) {
+            withContext(Dispatchers.Main) { Toast.makeText(this@PrepReminderActivity, "No phone number found in profile", Toast.LENGTH_SHORT).show() }
+            return
+        }
+
+        val message = "CookGPT Smart Reminder: I've scheduled a prep reminder for '$recipeName' at $dateTime. Don't forget to start cooking!"
+
+        // 1. Send SMS
+        try {
+            val smsManager = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                this.getSystemService(SmsManager::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                SmsManager.getDefault()
+            }
+            smsManager.sendTextMessage(phoneNumber, null, message, null, null)
+            withContext(Dispatchers.Main) { Toast.makeText(this@PrepReminderActivity, "SMS notification sent", Toast.LENGTH_SHORT).show() }
+        } catch (e: Exception) {
+            Log.e("PrepReminder", "SMS failed", e)
+        }
+
+        // 2. Open WhatsApp
+        openWhatsApp(recipeName, dateTime, phoneNumber)
+    }
+
+    private fun openWhatsApp(recipeName: String, dateTime: String, existingPhone: String? = null) {
+        lifecycleScope.launch {
+            val phoneNumber = existingPhone ?: getTargetPhoneNumber()
+            if (phoneNumber.isNotEmpty()) {
+                val cleanPhone = phoneNumber.replace(Regex("[^0-9]"), "")
+                val message = "CookGPT Smart Reminder: I've scheduled a prep reminder for '$recipeName' at $dateTime. Don't forget to start cooking!"
+                try {
+                    val intent = Intent(Intent.ACTION_VIEW)
+                    intent.data = Uri.parse("https://wa.me/$cleanPhone?text=${Uri.encode(message)}")
+                    intent.setPackage("com.whatsapp")
+                    startActivity(intent)
+                } catch (e: Exception) {
+                    val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/$cleanPhone?text=${Uri.encode(message)}"))
+                    startActivity(browserIntent)
+                }
+            }
+        }
+    }
+
     private fun loadScheduledReminders() {
         llReminders.removeAllViews()
         val allKeys = prefs.all.keys.filter { it.endsWith("_id") }
@@ -130,7 +230,7 @@ class PrepReminderActivity : AppCompatActivity() {
             cardView.findViewById<Button>(R.id.btn_cancel_reminder).setOnClickListener {
                 cancelReminder(idKey, labelKey, workId, label)
                 llReminders.removeView(cardView)
-                loadScheduledReminders() // refresh
+                loadScheduledReminders()
             }
             llReminders.addView(cardView)
         }
@@ -139,7 +239,6 @@ class PrepReminderActivity : AppCompatActivity() {
     private fun cancelReminder(idKey: String, labelKey: String, workId: String, label: String) {
         WorkManager.getInstance(this).cancelWorkById(UUID.fromString(workId))
         prefs.edit().remove(idKey).remove(labelKey).apply()
-        Log.d("PrepReminder", "Cancelled reminder: $label (id=$workId)")
         Toast.makeText(this, "Reminder cancelled", Toast.LENGTH_SHORT).show()
     }
 

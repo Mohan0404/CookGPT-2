@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
-import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -12,8 +11,10 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.appcompat.widget.SwitchCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.lifecycleScope
 import com.example.cookgpt.data.RecipeDatabaseHelper
 import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.launch
 
 class SettingsActivity : AppCompatActivity() {
 
@@ -22,7 +23,6 @@ class SettingsActivity : AppCompatActivity() {
 
         val firebaseUser = FirebaseAuth.getInstance().currentUser
         if (firebaseUser == null || !SessionManager.isLoggedIn(this)) {
-            Log.w("SettingsActivity", "Invalid session — redirecting to LoginActivity")
             startActivity(Intent(this, LoginActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             })
@@ -40,31 +40,21 @@ class SettingsActivity : AppCompatActivity() {
         findViewById<android.widget.ImageView>(R.id.btn_back).setOnClickListener { finish() }
 
         val switchDarkMode = findViewById<SwitchCompat>(R.id.switch_dark_mode)
-        switchDarkMode.isChecked =
-            AppCompatDelegate.getDefaultNightMode() == AppCompatDelegate.MODE_NIGHT_YES
+        switchDarkMode.isChecked = AppCompatDelegate.getDefaultNightMode() == AppCompatDelegate.MODE_NIGHT_YES
         switchDarkMode.setOnCheckedChangeListener { _, checked ->
-            AppCompatDelegate.setDefaultNightMode(
-                if (checked) AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO
-            )
+            AppCompatDelegate.setDefaultNightMode(if (checked) AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO)
         }
 
-        val seekbarBrightness = findViewById<SeekBar>(R.id.seekbar_brightness)
-        val currentBrightness = try {
-            android.provider.Settings.System.getInt(
-                contentResolver, android.provider.Settings.System.SCREEN_BRIGHTNESS
-            )
-        } catch (_: Exception) { 127 }
-        seekbarBrightness.progress = currentBrightness
-        seekbarBrightness.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                if (fromUser) { val lp = window.attributes; lp.screenBrightness = progress / 255f; window.attributes = lp }
-            }
-            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
-        })
+        // Change "Edit Profile" to open the main Registration/Edit screen with Phone field
+        findViewById<Button>(R.id.btn_edit_profile).setOnClickListener {
+            startActivity(Intent(this, RegistrationActivity::class.java).apply {
+                putExtra("is_edit_mode", true)
+            })
+        }
 
-        // TASK 8: Edit profile buttons
-        setupEditProfileButtons()
+        findViewById<Button>(R.id.btn_edit_metrics).setOnClickListener { startActivity(Intent(this, BodyMetricsActivity::class.java).putExtra("mode", "edit")) }
+        findViewById<Button>(R.id.btn_edit_goal).setOnClickListener { startActivity(Intent(this, FitnessGoalActivity::class.java).putExtra("mode", "edit")) }
+        findViewById<Button>(R.id.btn_edit_allergies).setOnClickListener { startActivity(Intent(this, AllergiesRestrictionsActivity::class.java).putExtra("mode", "edit")) }
 
         bindUserData()
 
@@ -76,32 +66,10 @@ class SettingsActivity : AppCompatActivity() {
         bindUserData()
     }
 
-    private fun setupEditProfileButtons() {
-        // Edit Health Profile (name, age, gender)
-        findViewById<Button>(R.id.btn_edit_profile).setOnClickListener {
-            startActivity(Intent(this, HealthProfileActivity::class.java)
-                .putExtra("mode", "edit"))
-        }
-        // Edit Body Metrics (height, weight)
-        findViewById<Button>(R.id.btn_edit_metrics).setOnClickListener {
-            startActivity(Intent(this, BodyMetricsActivity::class.java)
-                .putExtra("mode", "edit"))
-        }
-        // Edit Fitness Goal
-        findViewById<Button>(R.id.btn_edit_goal).setOnClickListener {
-            startActivity(Intent(this, FitnessGoalActivity::class.java)
-                .putExtra("mode", "edit"))
-        }
-        // Edit Allergies & Restrictions
-        findViewById<Button>(R.id.btn_edit_allergies).setOnClickListener {
-            startActivity(Intent(this, AllergiesRestrictionsActivity::class.java)
-                .putExtra("mode", "edit"))
-        }
-    }
-
     private fun bindUserData() {
-        val prefs        = getSharedPreferences("user_data", Context.MODE_PRIVATE)
+        val prefs = getSharedPreferences("user_data", Context.MODE_PRIVATE)
         val firebaseUser = FirebaseAuth.getInstance().currentUser
+        val db = AppDatabase.getDatabase(this)
 
         val tvUsername     = findViewById<TextView>(R.id.tv_user_name_display)
         val tvName         = findViewById<TextView>(R.id.tv_user_metrics)
@@ -111,29 +79,30 @@ class SettingsActivity : AppCompatActivity() {
         val tvAllergies    = findViewById<TextView>(R.id.tv_val_allergies)
         val tvRestrictions = findViewById<TextView>(R.id.tv_val_restrictions)
 
-        tvUsername.text = firebaseUser?.email
-            ?: prefs.getString("email", "")?.takeIf { it.isNotEmpty() }
-            ?: SessionManager.getUserId(this)
+        tvUsername.text = firebaseUser?.email ?: prefs.getString("email", "") ?: "User"
 
-        val name   = prefs.getString("name", "—").takeIf { !it.isNullOrEmpty() } ?: "—"
-        val age    = prefs.getString("age",  "—").takeIf { !it.isNullOrEmpty() } ?: "—"
-        val gender = prefs.getString("gender","—").takeIf { !it.isNullOrEmpty() } ?: "—"
+        lifecycleScope.launch {
+            val user = db.userDao().getUser()
+            if (user != null) {
+                tvName.text = "${user.name} | ${user.age} yrs | ${user.gender}"
+                // Display phone if needed in metrics or just use local user data
+            } else {
+                val name   = prefs.getString("name", "—")
+                val age    = prefs.getString("age",  "—")
+                val gender = prefs.getString("gender","—")
+                tvName.text = "$name | $age yrs | $gender"
+            }
+        }
 
-        tvName.text         = "$name | $age yrs | $gender"
         tvWeight.text       = "${prefs.getString("weight", "—")} kg"
         tvHeight.text       = "${prefs.getString("height", "—")} cm"
         tvGoal.text         = prefs.getString("goal", "—") ?: "—"
-        tvAllergies.text    = prefs.getString("allergies","None")?.takeIf { it.isNotEmpty() } ?: "None"
-        tvRestrictions.text = prefs.getString("restrictions","None")?.takeIf { it.isNotEmpty() } ?: "None"
+        tvAllergies.text    = prefs.getString("allergies","None") ?: "None"
+        tvRestrictions.text = prefs.getString("restrictions","None") ?: "None"
     }
 
     private fun performLogout() {
-        AlertDialog.Builder(this)
-            .setTitle("Log out")
-            .setMessage("Your data is saved to the cloud and will be restored when you log back in.")
-            .setPositiveButton("Log out") { _, _ -> doLogout() }
-            .setNegativeButton("Cancel", null)
-            .show()
+        AlertDialog.Builder(this).setTitle("Log out").setMessage("Logout?").setPositiveButton("Log out") { _, _ -> doLogout() }.setNegativeButton("Cancel", null).show()
     }
 
     private fun doLogout() {
@@ -141,9 +110,7 @@ class SettingsActivity : AppCompatActivity() {
         SessionManager.logout(this)
         RecipeDatabaseHelper(this).clearAllRecipes()
         getSharedPreferences("user_data", Context.MODE_PRIVATE).edit().clear().apply()
-        startActivity(Intent(this, LoginActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-        })
+        startActivity(Intent(this, LoginActivity::class.java).apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK })
         finish()
     }
 }
