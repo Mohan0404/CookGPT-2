@@ -6,6 +6,14 @@
         <entry key="Firebase Crashlytics">
           <value>
             <InsightsFilterSettings>
+              <option name="connection">
+                <ConnectionSetting>
+                  <option name="appId" value="com.example.cookgpt" />
+                  <option name="mobileSdkAppId" value="1:406938549831:android:8cc2e6f43b5a5a9a13fb62" />
+                  <option name="projectId" value="cookgpt-3bf1f" />
+                  <option name="projectNumber" value="406938549831" />
+                </ConnectionSetting>
+              </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />
               <option name="timeIntervalDays" value="THIRTY_DAYS" />
               <option name="visibilityType" value="ALL" />
