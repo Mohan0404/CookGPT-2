@@ -21,20 +21,20 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // Load local.properties (where YouTube key is)
         val localProps = Properties()
         val localPropsFile = project.rootProject.file("local.properties")
         if (localPropsFile.exists()) {
             localProps.load(FileInputStream(localPropsFile))
         }
         
-        // Use local.properties for YouTube Key
         val youtubeKey = localProps.getProperty("YOUTUBE_API_KEY") ?: ""
         buildConfigField("String", "YOUTUBE_API_KEY", "\"$youtubeKey\"")
 
-        // Use gradle.properties for Gemini Key (or fallback to local if present)
         val geminiKey = project.findProperty("GEMINI_API_KEY") ?: localProps.getProperty("GEMINI_API_KEY") ?: ""
         buildConfigField("String", "GEMINI_API_KEY", "\"$geminiKey\"")
+        
+        val newsApiKey = localProps.getProperty("NEWS_API_KEY") ?: ""
+        buildConfigField("String", "NEWS_API_KEY", "\"$newsApiKey\"")
     }
 
     buildFeatures {
@@ -70,6 +70,7 @@ dependencies {
     implementation("com.google.android.gms:play-services-location:21.3.0")
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.squareup.retrofit2:converter-scalars:2.9.0")
     implementation("com.github.bumptech.glide:glide:4.15.1")
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
@@ -77,24 +78,19 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
     implementation(libs.androidx.datastore.preferences)
 
-    // Gemini AI
     implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
-
-    // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
-
-    // Youtube Player API
     implementation("com.pierfrancescosoffritti.androidyoutubeplayer:core:12.1.0")
-
-    // Chrome Custom Tabs
     implementation("androidx.browser:browser:1.7.0")
 
-    // Firebase
     implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-database-ktx")
     implementation("com.google.firebase:firebase-storage-ktx")
+
+    // Stable AdMob version
+    implementation("com.google.android.gms:play-services-ads:23.6.0")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

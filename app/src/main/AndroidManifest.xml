@@ -27,6 +27,11 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Cookgpt">
 
+        <!-- Updated AdMob App ID -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-6826466751729494~9045315804"/>
+
         <activity
             android:name=".SplashActivity"
             android:exported="true">
@@ -65,8 +70,10 @@
         <activity android:name=".ui.MyRecipesActivity"           android:exported="false" />
         <activity android:name=".ui.CreateRecipeActivity"         android:exported="false" />
         <activity android:name=".ui.CustomRecipeDetailActivity"   android:exported="false" />
+        <activity android:name=".RssFeedActivity" android:exported="false" />
 
         <activity android:name=".AiChefActivity" android:exported="false" />
+        <activity android:name=".GeminiChatActivity" android:exported="false" />
 
         <service android:name=".FloatingPantryService" android:exported="false" />
 

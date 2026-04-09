@@ -61,7 +61,8 @@ class NutritionAnalysisActivity : AppCompatActivity() {
             tvEmpty.visibility     = View.GONE
 
             // Step 1: Search for ingredient ID
-            apiService.searchIngredient(food, Constants.API_KEY).enqueue(object : Callback<IngredientSearchResponse> {
+            // // FIX: Removed Constants.API_KEY - now handled by Interceptor
+            apiService.searchIngredient(food).enqueue(object : Callback<IngredientSearchResponse> {
                 override fun onResponse(call: Call<IngredientSearchResponse>, response: Response<IngredientSearchResponse>) {
                     val result = response.body()?.results?.firstOrNull()
                     if (result == null) {
@@ -74,7 +75,8 @@ class NutritionAnalysisActivity : AppCompatActivity() {
                     Log.d("Nutrition", "Found ingredient: ${result.name} id=${result.id}")
 
                     // Step 2: Get nutritional info per 100g
-                    apiService.getIngredientInfo(result.id, Constants.API_KEY)
+                    // // FIX: Removed Constants.API_KEY - now handled by Interceptor
+                    apiService.getIngredientInfo(result.id)
                         .enqueue(object : Callback<IngredientInfo> {
                             override fun onResponse(call: Call<IngredientInfo>, response: Response<IngredientInfo>) {
                                 progressBar.visibility = View.GONE

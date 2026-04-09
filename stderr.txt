@@ -1,0 +1,25 @@
+e: file:///C:/Users/chand/AndroidStudioProjects/Cookgpt/app/src/main/java/com/example/cookgpt/HomeActivity.kt:315:40 Unresolved reference 'btnWaterPlus'.
+e: file:///C:/Users/chand/AndroidStudioProjects/Cookgpt/app/src/main/java/com/example/cookgpt/HomeActivity.kt:321:40 Unresolved reference 'btnWaterMinus'.
+e: file:///C:/Users/chand/AndroidStudioProjects/Cookgpt/app/src/main/java/com/example/cookgpt/HomeActivity.kt:335:40 Unresolved reference 'btnAddMacro'.
+e: file:///C:/Users/chand/AndroidStudioProjects/Cookgpt/app/src/main/java/com/example/cookgpt/HomeActivity.kt:341:37 Unresolved reference 'tvWaterCount'.
+e: file:///C:/Users/chand/AndroidStudioProjects/Cookgpt/app/src/main/java/com/example/cookgpt/HomeActivity.kt:345:40 Unresolved reference 'pbCalories'.
+e: file:///C:/Users/chand/AndroidStudioProjects/Cookgpt/app/src/main/java/com/example/cookgpt/HomeActivity.kt:346:37 Unresolved reference 'tvCaloriesValue'.
+e: file:///C:/Users/chand/AndroidStudioProjects/Cookgpt/app/src/main/java/com/example/cookgpt/HomeActivity.kt:348:40 Unresolved reference 'pbProtein'.
+e: file:///C:/Users/chand/AndroidStudioProjects/Cookgpt/app/src/main/java/com/example/cookgpt/HomeActivity.kt:349:37 Unresolved reference 'tvProteinValue'.
+e: file:///C:/Users/chand/AndroidStudioProjects/Cookgpt/app/src/main/java/com/example/cookgpt/HomeActivity.kt:351:40 Unresolved reference 'pbCarbs'.
+e: file:///C:/Users/chand/AndroidStudioProjects/Cookgpt/app/src/main/java/com/example/cookgpt/HomeActivity.kt:352:37 Unresolved reference 'tvCarbsValue'.
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileDebugKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to generate a Build Scan (Powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 14s

@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="@drawable/bottom_sheet_bg">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Fast Macro Logger"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="@color/text_black"
+        android:layout_marginBottom="16dp" />
+
+    <EditText
+        android:id="@+id/etFoodName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Food item (e.g. Chicken breast)"
+        android:inputType="text"
+        android:layout_marginBottom="12dp" />
+
+    <EditText
+        android:id="@+id/etQuantity"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Quantity (grams/servings)"
+        android:inputType="numberDecimal"
+        android:layout_marginBottom="16dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:weightSum="3"
+        android:layout_marginBottom="24dp">
+
+        <EditText
+            android:id="@+id/etCalories"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:hint="Calories"
+            android:inputType="number" />
+
+        <EditText
+            android:id="@+id/etProtein"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:hint="Protein (g)"
+            android:inputType="number" />
+
+        <EditText
+            android:id="@+id/etCarbs"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:hint="Carbs (g)"
+            android:inputType="number" />
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/btnAddLog"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:text="Add to Today"
+        android:textColor="@color/white"
+        android:backgroundTint="@color/bg_green"
+        android:textAllCaps="false" />
+</LinearLayout>

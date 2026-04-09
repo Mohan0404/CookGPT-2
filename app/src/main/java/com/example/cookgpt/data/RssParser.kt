@@ -1,5 +1,6 @@
 package com.example.cookgpt.data
 
+import android.util.Log
 import android.util.Xml
 import org.xmlpull.v1.XmlPullParser
 import java.io.StringReader
@@ -8,38 +9,49 @@ class RssParser {
     fun parse(xml: String, source: String): List<RssItem> {
         val items = mutableListOf<RssItem>()
         val parser = Xml.newPullParser()
-        parser.setInput(StringReader(xml))
+        try {
+            parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false)
+            parser.setInput(StringReader(xml))
+            
+            var eventType = parser.eventType
+            var currentItem: MutableRssItem? = null
+            var tagText = "" // // FIX: Used as a buffer for text accumulation
 
-        var eventType = parser.eventType
-        var currentItem: MutableRssItem? = null
-
-        while (eventType != XmlPullParser.END_DOCUMENT) {
-            val name = parser.name
-            when (eventType) {
-                XmlPullParser.START_TAG -> {
-                    if (name == "item") {
-                        currentItem = MutableRssItem()
-                    } else if (currentItem != null) {
-                        when (name) {
-                            "title" -> currentItem.title = parser.nextText()
-                            "link" -> currentItem.link = parser.nextText()
-                            "description" -> currentItem.description = parser.nextText()
-                            "pubDate" -> currentItem.pubDate = parser.nextText()
-                            "media:content", "enclosure" -> {
+            while (eventType != XmlPullParser.END_DOCUMENT) {
+                val tagName = parser.name
+                when (eventType) {
+                    XmlPullParser.START_TAG -> {
+                        if (tagName.equals("item", ignoreCase = true)) {
+                            currentItem = MutableRssItem()
+                        } else if (currentItem != null) {
+                            if (tagName.contains("content", ignoreCase = true) || tagName.equals("enclosure", ignoreCase = true)) {
                                 val url = parser.getAttributeValue(null, "url")
-                                if (url != null) currentItem.imageUrl = url
+                                if (!url.isNullOrEmpty()) currentItem.imageUrl = url
+                            }
+                        }
+                        tagText = "" // // FIX: Clear buffer for new tag
+                    }
+                    XmlPullParser.TEXT -> {
+                        tagText += parser.text // // FIX: Accumulate text nodes (handles CDATA and entities)
+                    }
+                    XmlPullParser.END_TAG -> {
+                        if (tagName.equals("item", ignoreCase = true)) {
+                            currentItem?.let { items.add(it.toRssItem(source)) }
+                            currentItem = null
+                        } else if (currentItem != null) {
+                            when {
+                                tagName.equals("title", ignoreCase = true) -> currentItem.title = tagText.trim()
+                                tagName.equals("link", ignoreCase = true) -> currentItem.link = tagText.trim()
+                                tagName.equals("description", ignoreCase = true) -> currentItem.description = tagText.trim()
+                                tagName.equals("pubDate", ignoreCase = true) -> currentItem.pubDate = tagText.trim()
                             }
                         }
                     }
                 }
-                XmlPullParser.END_TAG -> {
-                    if (name == "item" && currentItem != null) {
-                        items.add(currentItem.toRssItem(source))
-                        currentItem = null
-                    }
-                }
+                eventType = parser.next()
             }
-            eventType = parser.next()
+        } catch (e: Exception) {
+            Log.e("RssParser", "Error parsing $source: ${e.message}")
         }
         return items
     }
@@ -51,24 +63,34 @@ class RssParser {
         var pubDate: String = ""
         var imageUrl: String? = null
 
-        fun toRssItem(source: String) = RssItem(
-            title = title,
-            link = link,
-            description = cleanDescription(description),
-            pubDate = pubDate,
-            imageUrl = imageUrl ?: extractImageUrl(description),
-            source = source
-        )
+        fun toRssItem(source: String): RssItem {
+            return RssItem(
+                title = title.trim(),
+                link = link.trim(),
+                description = cleanDescription(description),
+                pubDate = formatDisplayDate(pubDate),
+                imageUrl = imageUrl ?: extractImageUrl(description),
+                source = source
+            )
+        }
 
         private fun cleanDescription(desc: String): String {
-            // Remove HTML tags from description
-            return desc.replace(Regex("<[^>]*>"), "").trim()
+            // // FIX: Comprehensive HTML stripping and entity cleaning
+            return desc.replace(Regex("<[^>]*>"), "")
+                .replace("&nbsp;", " ")
+                .replace("&amp;", "&")
+                .replace("&quot;", "\"")
+                .replace("&apos;", "'")
+                .trim()
         }
 
         private fun extractImageUrl(desc: String): String? {
-            // Try to find an image source in the description if it's HTML
             val match = Regex("src=\"([^\"]+)\"").find(desc)
             return match?.groupValues?.get(1)
+        }
+
+        private fun formatDisplayDate(dateStr: String): String {
+            return try { dateStr.split(" ").take(4).joinToString(" ") } catch (e: Exception) { dateStr }
         }
     }
 }

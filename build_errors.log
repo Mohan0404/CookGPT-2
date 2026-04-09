@@ -1,0 +1,49 @@
+
+> Configure project :app
+WARNING: The option setting 'android.builtInKotlin=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+WARNING: The option setting 'android.newDsl=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:dataBindingMergeDependencyArtifactsDebug UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:processDebugGoogleServices UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:processDebugNavigationResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:dataBindingGenBaseClassesDebug UP-TO-DATE
+> Task :app:generateDebugBuildConfig UP-TO-DATE
+> Task :app:generateDebugRFile UP-TO-DATE
+> Task :app:kaptGenerateStubsDebugKotlin
+> Task :app:kaptDebugKotlin UP-TO-DATE
+
+> Task :app:compileDebugKotlin
+w: file:///C:/Users/chand/AndroidStudioProjects/Cookgpt/app/src/main/java/com/example/cookgpt/AiChefActivity.kt:113:13 'fun startActivityForResult(intent: Intent, requestCode: Int): Unit' is deprecated. This method has been deprecated in favor of using the Activity Result API
+      which brings increased type safety via an {@link ActivityResultContract} and the prebuilt
+      contracts for common intents available in
+      {@link androidx.activity.result.contract.ActivityResultContracts}, provides hooks for
+      testing, and allow receiving results in separate, testable classes independent from your
+      activity. Use
+      {@link #registerForActivityResult(ActivityResultContract, ActivityResultCallback)}
+      passing in a {@link StartActivityForResult} object for the {@link ActivityResultContract}.
+w: file:///C:/Users/chand/AndroidStudioProjects/Cookgpt/app/src/main/java/com/example/cookgpt/AppDatabase.kt:23:18 'fun fallbackToDestructiveMigration(): RoomDatabase.Builder<AppDatabase>' is deprecated. Replace by overloaded version with parameter to indicate if all tables should be dropped or not.
+w: file:///C:/Users/chand/AndroidStudioProjects/Cookgpt/app/src/main/java/com/example/cookgpt/DiscoverActivity.kt:169:69 'fun setToolbarColor(p0: Int): CustomTabsIntent.Builder' is deprecated. Deprecated in Java.
+w: file:///C:/Users/chand/AndroidStudioProjects/Cookgpt/app/src/main/java/com/example/cookgpt/FloatingPantryService.kt:41:44 'static field TYPE_PHONE: Int' is deprecated. Deprecated in Java.
+w: file:///C:/Users/chand/AndroidStudioProjects/Cookgpt/app/src/main/java/com/example/cookgpt/HomeActivity.kt:5:8 'class ProgressDialog : AlertDialog' is deprecated. Deprecated in Java.
+w: file:///C:/Users/chand/AndroidStudioProjects/Cookgpt/app/src/main/java/com/example/cookgpt/HomeActivity.kt:225:30 'constructor(p0: Context!): ProgressDialog' is deprecated. Deprecated in Java.
+w: file:///C:/Users/chand/AndroidStudioProjects/Cookgpt/app/src/main/java/com/example/cookgpt/HomeActivity.kt:226:24 'fun setMessage(p0: CharSequence!): Unit' is deprecated. Deprecated in Java.
+w: file:///C:/Users/chand/AndroidStudioProjects/Cookgpt/app/src/main/java/com/example/cookgpt/RecipeDetailsActivity.kt:78:29 'fun getSerializableExtra(p0: String!): Serializable?' is deprecated. Deprecated in Java.
+w: file:///C:/Users/chand/AndroidStudioProjects/Cookgpt/app/src/main/java/com/example/cookgpt/RecipeDetailsActivity.kt:229:33 'static fun getDefault(): SmsManager!' is deprecated. Deprecated in Java.
+w: file:///C:/Users/chand/AndroidStudioProjects/Cookgpt/app/src/main/java/com/example/cookgpt/RegistrationActivity.kt:59:53 Unchecked cast of 'SpinnerAdapter!' to 'ArrayAdapter<String>'.
+w: file:///C:/Users/chand/AndroidStudioProjects/Cookgpt/app/src/main/java/com/example/cookgpt/RegistrationActivity.kt:85:53 Unchecked cast of 'SpinnerAdapter!' to 'ArrayAdapter<String>'.
+w: file:///C:/Users/chand/AndroidStudioProjects/Cookgpt/app/src/main/java/com/example/cookgpt/SavedRecipesActivity.kt:96:43 'val adapterPosition: Int' is deprecated. Deprecated in Java.
+
+BUILD SUCCESSFUL in 13s
+13 actionable tasks: 2 executed, 11 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.1.0/userguide/configuration_cache_enabling.html

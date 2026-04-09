@@ -40,6 +40,11 @@ data class RecipeResponse(
 )
 
 @Keep
+data class RandomRecipeResponse(
+    val recipes: List<RecipeDetail> = emptyList()
+)
+
+@Keep
 data class Recipe(
     val id: Int = 0,
     val title: String = "",

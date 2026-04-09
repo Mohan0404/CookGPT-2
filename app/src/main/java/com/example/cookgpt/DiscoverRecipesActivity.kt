@@ -1,7 +1,6 @@
 package com.example.cookgpt
 
 import android.content.Context
-import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -14,8 +13,6 @@ import androidx.recyclerview.widget.RecyclerView
 import android.os.Handler
 import android.os.Looper
 import com.example.cookgpt.data.ApiService
-import com.example.cookgpt.data.Constants
-import com.example.cookgpt.data.Recipe
 import com.example.cookgpt.data.RecipeResponse
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
@@ -39,9 +36,7 @@ class DiscoverRecipesActivity : AppCompatActivity() {
     private val gson = Gson()
     private lateinit var prefs: android.content.SharedPreferences
 
-    // Currently selected diet chip value (empty = no filter)
     private var selectedDiet = ""
-
     private val searchHandler = Handler(Looper.getMainLooper())
     private var searchRunnable: Runnable? = null
 
@@ -49,7 +44,7 @@ class DiscoverRecipesActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_discover_recipes)
 
-        prefs     = getSharedPreferences("discover_prefs", Context.MODE_PRIVATE)
+        prefs = getSharedPreferences("discover_prefs", Context.MODE_PRIVATE)
 
         etSearch      = findViewById(R.id.etSearch)
         btnSearch     = findViewById(R.id.btnSearch)
@@ -62,27 +57,18 @@ class DiscoverRecipesActivity : AppCompatActivity() {
 
         rvRecipes.layoutManager = GridLayoutManager(this, 2)
 
-        // TASK 4: Diet chips
         cgDiet.setOnCheckedStateChangeListener { group, checkedIds ->
             selectedDiet = if (checkedIds.isNotEmpty()) {
                 (group.findViewById<Chip>(checkedIds[0])).text.toString().lowercase()
             } else ""
         }
 
-        // TASK 6: Show/hide history chipgroup based on focus and text
-        etSearch.setOnFocusChangeListener { _, hasFocus ->
-            if (hasFocus && etSearch.text.isEmpty()) refreshHistoryChips(show = true)
-        }
-        
         etSearch.addTextChangedListener(object : android.text.TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                 refreshHistoryChips(show = s.isNullOrEmpty())
-                
                 searchRunnable?.let { searchHandler.removeCallbacks(it) }
-                
                 val query = s?.toString()?.trim() ?: ""
-                
                 if (query.isEmpty()) {
                     searchRunnable = Runnable { searchRecipes("popular recipes") }
                     searchHandler.postDelayed(searchRunnable!!, 500)
@@ -96,10 +82,7 @@ class DiscoverRecipesActivity : AppCompatActivity() {
 
         etSearch.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
-                val q = etSearch.text.toString().trim()
-                if (q.isNotEmpty()) {
-                    triggerSearch()
-                }
+                triggerSearch()
                 true
             } else false
         }
@@ -110,18 +93,12 @@ class DiscoverRecipesActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         refreshHistoryChips(show = etSearch.text.isEmpty())
-        
-        if (etSearch.text.isEmpty()) {
-            searchRecipes("popular recipes")
-        }
+        if (etSearch.text.isEmpty()) searchRecipes("popular recipes")
     }
 
     private fun triggerSearch() {
         val query = etSearch.text.toString().trim()
-        if (query.isEmpty()) {
-            etSearch.error = "Please enter a recipe name"
-            return
-        }
+        if (query.isEmpty()) return
         hideKeyboard()
         saveToHistory(query)
         refreshHistoryChips(show = false)
@@ -131,82 +108,65 @@ class DiscoverRecipesActivity : AppCompatActivity() {
     private fun searchRecipes(query: String) {
         progressBar.visibility  = View.VISIBLE
         tvEmptyState.visibility = View.GONE
-        rvRecipes.adapter       = null
-
-        // TASK 4: Read allergies from user_data and always inject as intolerances
+        
         val allergies = getSharedPreferences("user_data", Context.MODE_PRIVATE)
             .getString("allergies", "") ?: ""
 
-        Log.d("Discover", "Searching: $query | diet=$selectedDiet | intolerances=$allergies")
-
+        // // FIX: Removed manual apiKey param - now handled by Interceptor
         apiService.searchDiscoverRecipes(
             query        = query,
-            apiKey       = Constants.API_KEY,
             intolerances = allergies,
             diet         = selectedDiet,
             addRecipeNutrition = true
         ).enqueue(object : Callback<RecipeResponse> {
             override fun onResponse(call: Call<RecipeResponse>, response: Response<RecipeResponse>) {
                 progressBar.visibility = View.GONE
-                if (response.isSuccessful && response.body() != null) {
+                if (response.isSuccessful) {
                     val recipes = response.body()?.results ?: emptyList()
                     if (recipes.isEmpty()) {
                         tvEmptyState.text = "No recipes found for \"$query\""
                         tvEmptyState.visibility = View.VISIBLE
+                        rvRecipes.adapter = null
                     } else {
                         rvRecipes.adapter = DiscoverRecipeAdapter(recipes)
                     }
-                } else {
-                    tvEmptyState.text = "API Error: ${response.code()}"
-                    tvEmptyState.visibility = View.VISIBLE
-                    Log.e("Discover", response.errorBody()?.string() ?: "Unknown")
                 }
             }
             override fun onFailure(call: Call<RecipeResponse>, t: Throwable) {
-                progressBar.visibility  = View.GONE
-                tvEmptyState.text       = "Network Error — check connection"
+                progressBar.visibility = View.GONE
                 tvEmptyState.visibility = View.VISIBLE
-                Log.e("Discover", t.message ?: "Unknown error")
             }
         })
     }
 
-    // ── TASK 6: Search history ──────────────────────────────────────────────
-
     private fun saveToHistory(query: String) {
         val existing = loadHistory().toMutableList()
-        existing.remove(query)           // remove duplicate
-        existing.add(0, query)           // prepend
-        if (existing.size > 5) existing.removeLast()
+        existing.remove(query)
+        existing.add(0, query)
+        if (existing.size > 5) existing.removeAt(5)
         prefs.edit().putString("recent_searches", gson.toJson(existing)).apply()
     }
 
     private fun loadHistory(): List<String> {
         val json = prefs.getString("recent_searches", "[]") ?: "[]"
-        return try {
-            gson.fromJson(json, Array<String>::class.java).toList()
-        } catch (_: Exception) { emptyList() }
+        return gson.fromJson(json, Array<String>::class.java).toList()
     }
 
     private fun refreshHistoryChips(show: Boolean) {
         cgHistory.removeAllViews()
         val history = loadHistory()
-
         if (!show || history.isEmpty()) {
-            cgHistory.visibility    = View.GONE
+            cgHistory.visibility = View.GONE
             tvHistoryLabel.visibility = View.GONE
             return
         }
-
-        cgHistory.visibility    = View.VISIBLE
+        cgHistory.visibility = View.VISIBLE
         tvHistoryLabel.visibility = View.VISIBLE
-
-        history.forEach { query ->
+        history.forEach { q ->
             val chip = Chip(this)
-            chip.text = query
-            chip.isClickable = true
+            chip.text = q
             chip.setOnClickListener {
-                etSearch.setText(query)
+                etSearch.setText(q)
                 triggerSearch()
             }
             cgHistory.addView(chip)

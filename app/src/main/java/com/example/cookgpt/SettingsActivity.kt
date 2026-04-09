@@ -2,8 +2,8 @@ package com.example.cookgpt
 
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
-import android.util.Log
 import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -45,7 +45,6 @@ class SettingsActivity : AppCompatActivity() {
             AppCompatDelegate.setDefaultNightMode(if (checked) AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO)
         }
 
-        // Change "Edit Profile" to open the main Registration/Edit screen with Phone field
         findViewById<Button>(R.id.btn_edit_profile).setOnClickListener {
             startActivity(Intent(this, RegistrationActivity::class.java).apply {
                 putExtra("is_edit_mode", true)
@@ -55,6 +54,19 @@ class SettingsActivity : AppCompatActivity() {
         findViewById<Button>(R.id.btn_edit_metrics).setOnClickListener { startActivity(Intent(this, BodyMetricsActivity::class.java).putExtra("mode", "edit")) }
         findViewById<Button>(R.id.btn_edit_goal).setOnClickListener { startActivity(Intent(this, FitnessGoalActivity::class.java).putExtra("mode", "edit")) }
         findViewById<Button>(R.id.btn_edit_allergies).setOnClickListener { startActivity(Intent(this, AllergiesRestrictionsActivity::class.java).putExtra("mode", "edit")) }
+
+
+        // Instagram Click Logic
+        findViewById<LinearLayout>(R.id.layout_instagram).setOnClickListener {
+            val instaUri = Uri.parse("https://www.instagram.com/_.mohan0404._/")
+            val intent = Intent(Intent.ACTION_VIEW, instaUri)
+            intent.setPackage("com.instagram.android")
+            try {
+                startActivity(intent)
+            } catch (e: Exception) {
+                startActivity(Intent(Intent.ACTION_VIEW, instaUri))
+            }
+        }
 
         bindUserData()
 
@@ -85,7 +97,6 @@ class SettingsActivity : AppCompatActivity() {
             val user = db.userDao().getUser()
             if (user != null) {
                 tvName.text = "${user.name} | ${user.age} yrs | ${user.gender}"
-                // Display phone if needed in metrics or just use local user data
             } else {
                 val name   = prefs.getString("name", "—")
                 val age    = prefs.getString("age",  "—")
