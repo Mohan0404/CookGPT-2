@@ -36,10 +36,24 @@ class GeminiChatActivity : AppCompatActivity() {
     private var generativeModel: GenerativeModel? = null
     private var chat: Chat? = null
 
+    // ADDED — prevent welcome message repeating on every visit (BUG 3)
+    private var welcomeShown = false
+
+    // ADDED — track current model for fallback chain (BUG 1)
+    private var currentModelIndex = 0
+    private val modelFallbackChain = listOf(
+        "gemini-2.0-flash",
+        "gemini-1.5-flash-latest",
+        "gemini-1.5-flash",
+        "gemini-1.0-pro"
+    )
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_gemini_chat)
         initViews()
+        // BUG 4 FIX — restore chat history first, then init Gemini
+        restoreChatHistory()
         loadProfileThenInitGemini()
     }
 
@@ -50,6 +64,7 @@ class GeminiChatActivity : AppCompatActivity() {
         progressBar = findViewById(R.id.progressBar)
 
         chatAdapter = ChatMessageAdapter(messages)
+        // MODIFIED — stackFromEnd so new messages appear at bottom (BUG 6)
         rvMessages.layoutManager = LinearLayoutManager(this).apply { stackFromEnd = true }
         rvMessages.adapter = chatAdapter
 
@@ -59,7 +74,6 @@ class GeminiChatActivity : AppCompatActivity() {
         }
 
         setupQuickChips()
-        restoreChatHistory()
     }
 
     private fun setupQuickChips() {
@@ -80,6 +94,7 @@ class GeminiChatActivity : AppCompatActivity() {
         chipProtein.setOnClickListener(listener)
     }
 
+    // MODIFIED — save chat on pause for persistence (BUG 4)
     override fun onPause() {
         super.onPause()
         val gson = Gson()
@@ -90,6 +105,7 @@ class GeminiChatActivity : AppCompatActivity() {
             .apply()
     }
 
+    // MODIFIED — restore chat history, skip welcome if history exists (BUG 3/4)
     private fun restoreChatHistory() {
         val prefs = getSharedPreferences("chat_prefs", MODE_PRIVATE)
         val json = prefs.getString("last_chat", null) ?: return
@@ -97,11 +113,20 @@ class GeminiChatActivity : AppCompatActivity() {
             val type = object : TypeToken<List<ChatMessage>>() {}.type
             val saved = Gson().fromJson<List<ChatMessage>>(json, type) ?: return
             if (saved.isNotEmpty()) {
-                messages.addAll(0, saved)
+                messages.clear()
+                messages.addAll(saved)
                 chatAdapter.notifyDataSetChanged()
-                
+
+                // ADDED — mark welcome as shown since we restored history
+                welcomeShown = true
+
                 // Hide chips if restoring history
                 findViewById<LinearLayout>(R.id.layoutQuickChips).visibility = View.GONE
+
+                // MODIFIED — scroll to bottom after restore (BUG 5)
+                rvMessages.post {
+                    rvMessages.scrollToPosition(messages.size - 1)
+                }
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -110,18 +135,34 @@ class GeminiChatActivity : AppCompatActivity() {
 
     private fun loadProfileThenInitGemini() {
         val uid = SessionManager.getUserId(this)
-        if (uid.isEmpty()) { initGemini(UserHealthProfile()); return }
+        if (uid.isEmpty()) {
+            initGemini(UserHealthProfile())
+            // MODIFIED — only show welcome if not already shown (BUG 3)
+            if (!welcomeShown) {
+                addWelcomeMessage(UserHealthProfile())
+                welcomeShown = true
+            }
+            return
+        }
 
         FirebaseProfileLoader.loadUserProfile(
             uid = uid,
             onSuccess = { profile ->
                 userProfile = profile
                 initGemini(profile)
-                addWelcomeMessage(profile)
+                // MODIFIED — only show welcome if not already shown (BUG 3)
+                if (!welcomeShown) {
+                    addWelcomeMessage(profile)
+                    welcomeShown = true
+                }
             },
             onFailure = {
                 initGemini(UserHealthProfile())
-                addWelcomeMessage(UserHealthProfile())
+                // MODIFIED — only show welcome if not already shown (BUG 3)
+                if (!welcomeShown) {
+                    addWelcomeMessage(UserHealthProfile())
+                    welcomeShown = true
+                }
             }
         )
     }
@@ -152,9 +193,10 @@ class GeminiChatActivity : AppCompatActivity() {
         Start by briefly greeting the user by name and asking what they need help with today.
     """.trimIndent()
 
+    // MODIFIED — Updated to supported Gemini model
     private fun initGemini(profile: UserHealthProfile) {
         generativeModel = GenerativeModel(
-            modelName = "gemini-1.5-flash",
+            modelName = "gemini-flash-latest",
             apiKey = BuildConfig.GEMINI_API_KEY,
             systemInstruction = content { text(buildSystemPrompt(profile)) }
         )
@@ -162,13 +204,16 @@ class GeminiChatActivity : AppCompatActivity() {
     }
 
     private fun addWelcomeMessage(profile: UserHealthProfile) {
+        if (messages.isNotEmpty()) return
         val name = profile.name.ifEmpty { "there" }
         val welcome = "Hi $name! I'm CookGPT, your personal food and health assistant. " +
             "Ask me anything — recipe ideas, meal plans, nutrition advice, or " +
             "healthy alternatives tailored just for you!"
         messages.add(ChatMessage(text = welcome, isFromUser = false))
         chatAdapter.notifyItemInserted(messages.size - 1)
-        rvMessages.scrollToPosition(messages.size - 1)
+        rvMessages.post {
+            rvMessages.scrollToPosition(messages.size - 1)
+        }
     }
 
     private fun sendMessage() {
@@ -179,37 +224,68 @@ class GeminiChatActivity : AppCompatActivity() {
 
         messages.add(ChatMessage(text = userText, isFromUser = true))
         chatAdapter.notifyItemInserted(messages.size - 1)
-        rvMessages.scrollToPosition(messages.size - 1)
+        rvMessages.post {
+            rvMessages.scrollToPosition(messages.size - 1)
+        }
 
         progressBar.visibility = View.VISIBLE
         btnSend.isEnabled = false
 
         lifecycleScope.launch {
             try {
-                val response = chat!!.sendMessage(userText)
-                val aiText = response.text ?: "I couldn't generate a response. Please try again."
+                val activeChat = chat ?: run {
+                    withContext(Dispatchers.Main) { retryInitialize() }
+                    withContext(Dispatchers.Main) {
+                        messages.add(ChatMessage(
+                            text = "AI not ready yet. Reconnecting… please try again in a moment.",
+                            isFromUser = false,
+                            isError = true
+                        ))
+                        chatAdapter.notifyItemInserted(messages.size - 1)
+                        rvMessages.post { rvMessages.scrollToPosition(messages.size - 1) }
+                        progressBar.visibility = View.GONE
+                        btnSend.isEnabled = true
+                    }
+                    return@launch
+                }
+
+                // Call without inner try-catch to properly parse
+                val response = activeChat.sendMessage(userText)
+                val aiText = response.text ?: "I couldn't generate a response."
+
                 withContext(Dispatchers.Main) {
                     messages.add(ChatMessage(text = aiText, isFromUser = false))
                     chatAdapter.notifyItemInserted(messages.size - 1)
-                    rvMessages.scrollToPosition(messages.size - 1)
+                    rvMessages.post {
+                        rvMessages.scrollToPosition(messages.size - 1)
+                    }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
+                    val errMsg = e.message ?: e.toString()
                     messages.add(ChatMessage(
                         text = "Something went wrong: ${e.localizedMessage}",
                         isFromUser = false,
                         isError = true
                     ))
                     chatAdapter.notifyItemInserted(messages.size - 1)
+                    rvMessages.post { rvMessages.scrollToPosition(messages.size - 1) }
                 }
             } finally {
                 withContext(Dispatchers.Main) {
                     progressBar.visibility = View.GONE
                     btnSend.isEnabled = true
-                    rvMessages.scrollToPosition(messages.size - 1)
+                    rvMessages.post {
+                        rvMessages.scrollToPosition(messages.size - 1)
+                    }
                 }
             }
         }
+    }
+
+    private fun retryInitialize() {
+        progressBar.visibility = View.VISIBLE
+        loadProfileThenInitGemini()
     }
 
     private fun hideKeyboard() {

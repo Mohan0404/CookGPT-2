@@ -60,6 +60,8 @@ data class RecipeDetail(
     val summary: String = "",
     val extendedIngredients: List<Ingredient> = emptyList(),
     val instructions: String? = null,
+    val readyInMinutes: Int = 0,
+    val servings: Int = 0,
     val nutrition: NutritionWrapper? = null
 )
 

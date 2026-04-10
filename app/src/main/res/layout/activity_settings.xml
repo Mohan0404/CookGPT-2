@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- MODIFIED — Stitch MCP UI enhancement -->
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -55,12 +56,16 @@
             android:padding="20dp">
 
             <!-- Profile Summary Card -->
-            <androidx.cardview.widget.CardView
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="20dp"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="2dp">
+                
+                
+        app:cardCornerRadius="16dp"
+        app:cardElevation="0dp"
+        app:strokeWidth="1dp"
+        app:strokeColor="#E5E7EB">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -169,6 +174,53 @@
                         </LinearLayout>
                     </GridLayout>
 
+                    <LinearLayout
+                        android:id="@+id/ll_bmi_container"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:background="@drawable/logo_bg"
+                        android:backgroundTint="#ECFDF5"
+                        android:orientation="vertical"
+                        android:padding="12dp"
+                        android:visibility="gone"
+                        tools:visibility="visible">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Body Mass Index (BMI)"
+                            android:textColor="@color/bg_green"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="bottom">
+
+                            <TextView
+                                android:id="@+id/tv_val_bmi"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="24.5"
+                                android:textColor="@color/bg_green"
+                                android:textSize="24sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/tv_val_bmi_status"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="8dp"
+                                android:layout_marginBottom="4dp"
+                                android:text="(Normal Weight)"
+                                android:textColor="@color/bg_green"
+                                android:textSize="14sp" />
+                        </LinearLayout>
+                    </LinearLayout>
+
                     <!-- TASK 8: Edit Profile button -->
                     <Button
                         android:id="@+id/btn_edit_profile"
@@ -179,8 +231,8 @@
                         android:text="Edit Profile"
                         android:textAllCaps="false"
                         android:textColor="#FFFFFF"
-                        android:textSize="13sp"
-                        app:cornerRadius="8dp" />
+                        android:textSize="14sp"
+                        app:cornerRadius="16dp" />
 
                     <Button
                         android:id="@+id/btn_edit_metrics"
@@ -191,11 +243,11 @@
                         android:text="Edit Body Metrics"
                         android:textAllCaps="false"
                         android:textColor="#FFFFFF"
-                        android:textSize="13sp"
-                        app:cornerRadius="8dp" />
+                        android:textSize="14sp"
+                        app:cornerRadius="16dp" />
 
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </com.google.android.material.card.MaterialCardView>
 
             <!-- Health Goals & Dietary -->
             <TextView
@@ -207,12 +259,16 @@
                 android:textSize="16sp"
                 android:textStyle="bold" />
 
-            <androidx.cardview.widget.CardView
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="20dp"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="2dp">
+                
+                
+        app:cardCornerRadius="16dp"
+        app:cardElevation="0dp"
+        app:strokeWidth="1dp"
+        app:strokeColor="#E5E7EB">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -282,7 +338,7 @@
                             android:textAllCaps="false"
                             android:textColor="#FFFFFF"
                             android:textSize="12sp"
-                            app:cornerRadius="8dp" />
+                            app:cornerRadius="16dp" />
 
                         <Button
                             android:id="@+id/btn_edit_allergies"
@@ -294,11 +350,11 @@
                             android:textAllCaps="false"
                             android:textColor="#FFFFFF"
                             android:textSize="12sp"
-                            app:cornerRadius="8dp" />
+                            app:cornerRadius="16dp" />
                     </LinearLayout>
 
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </com.google.android.material.card.MaterialCardView>
 
             <!-- App Settings -->
             <TextView
@@ -310,12 +366,16 @@
                 android:textSize="16sp"
                 android:textStyle="bold" />
 
-            <androidx.cardview.widget.CardView
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="20dp"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="2dp">
+                
+                
+        app:cardCornerRadius="16dp"
+        app:cardElevation="0dp"
+        app:strokeWidth="1dp"
+        app:strokeColor="#E5E7EB">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -353,7 +413,7 @@
                         android:layout_marginTop="8dp"
                         android:max="255" />
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </com.google.android.material.card.MaterialCardView>
 
             <Button
                 android:id="@+id/btn_logout"
@@ -366,7 +426,7 @@
                 android:textAllCaps="false"
                 android:textColor="@color/white"
                 android:textSize="18sp"
-                app:cornerRadius="12dp" />
+                app:cornerRadius="16dp" />
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>

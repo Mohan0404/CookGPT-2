@@ -42,10 +42,12 @@ class RecipeDetailsActivity : AppCompatActivity() {
     private lateinit var btnSaveRecipe:      MaterialButton
     private lateinit var progressBar:        ProgressBar
 
-    private lateinit var llNutritionRow: LinearLayout
+    private lateinit var cvNutrition:    com.google.android.material.card.MaterialCardView
     private lateinit var tvCalories:     TextView
     private lateinit var tvProtein:      TextView
     private lateinit var tvCarbs:        TextView
+    private lateinit var tvPrepTime:     TextView
+    private lateinit var tvServings:     TextView
 
     private val apiService = ApiService.create()
     private lateinit var dbHelper: RecipeDatabaseHelper
@@ -68,10 +70,15 @@ class RecipeDetailsActivity : AppCompatActivity() {
         btnSaveRecipe     = findViewById(R.id.btnSaveRecipe)
         progressBar       = findViewById(R.id.progressBarDetail)
 
-        llNutritionRow    = findViewById(R.id.llNutritionRow)
+        cvNutrition       = findViewById(R.id.cvNutrition)
         tvCalories        = findViewById(R.id.tvCalories)
         tvProtein         = findViewById(R.id.tvProtein)
         tvCarbs           = findViewById(R.id.tvCarbs)
+        tvPrepTime        = findViewById(R.id.tvPrepTime)
+        tvServings        = findViewById(R.id.tvServings)
+
+        findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar).setNavigationIcon(R.drawable.ic_arrow_back)
+        findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar).setNavigationOnClickListener { finish() }
 
         dbHelper = RecipeDatabaseHelper(this)
 
@@ -187,11 +194,15 @@ class RecipeDetailsActivity : AppCompatActivity() {
             tvIngredients.text = it.extendedIngredients.joinToString("\n") { ing -> "• ${ing.original}" }
             
             it.nutrition?.nutrients?.let { nutrients ->
-                llNutritionRow.visibility = View.VISIBLE
+                cvNutrition.visibility = View.VISIBLE
                 tvCalories.text = nutrients.find { n -> n.name == "Calories" }?.let { "${it.amount.roundToInt()}kcal" } ?: "—"
                 tvProtein.text = nutrients.find { n -> n.name == "Protein" }?.let { "${it.amount.roundToInt()}g" } ?: "—"
                 tvCarbs.text = nutrients.find { n -> n.name == "Carbohydrates" }?.let { "${it.amount.roundToInt()}g" } ?: "—"
             }
+            
+            tvPrepTime.text = "${it.readyInMinutes} mins"
+            tvServings.text = "${it.servings} servings"
+
             Glide.with(this).load(it.image).placeholder(R.drawable.ic_chef_hat).into(ivDetailImage)
         }
     }

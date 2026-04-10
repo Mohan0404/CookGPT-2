@@ -78,7 +78,8 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
     implementation(libs.androidx.datastore.preferences)
 
-    implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
+    // MODIFIED — downgraded from 0.9.0 to fix model-not-found 404
+    implementation("com.google.ai.client.generativeai:generativeai:0.8.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
     implementation("com.pierfrancescosoffritti.androidyoutubeplayer:core:12.1.0")

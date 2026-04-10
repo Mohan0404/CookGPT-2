@@ -79,9 +79,7 @@ class HomeActivity : AppCompatActivity() {
 
     private var recipesListener: ValueEventListener? = null
 
-    // ADDED — news section state
-    private lateinit var newsAdapter: NewsAdapter
-    private var currentNewsQuery = "food OR cooking OR nutrition OR healthy eating"
+    // REMOVED — news section moved to Discover tab
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -129,17 +127,17 @@ class HomeActivity : AppCompatActivity() {
             popup.show()
         }
 
-        findViewById<ImageView>(R.id.btn_profile).setOnClickListener {
-            startActivity(Intent(this, RegistrationActivity::class.java).apply { putExtra("is_edit_mode", true) })
-        }
+        // REMOVED: btn_profile click listener (spoon icon deleted from layout)
 
         // REMOVED: btn_rss_feed click listener (DailyChefFeed removed)
 
         findViewById<LinearLayout>(R.id.btn_discover_tab).setOnClickListener { startActivity(Intent(this, DiscoverActivity::class.java)) }
+        findViewById<LinearLayout>(R.id.btn_shop_tab).setOnClickListener { startActivity(Intent(this, ShopActivity::class.java)) }
+        findViewById<LinearLayout>(R.id.btn_wellness_tab).setOnClickListener { startActivity(Intent(this, WellnessActivity::class.java)) }
         findViewById<LinearLayout>(R.id.btn_settings_tab).setOnClickListener { showProgressAndNavigate() }
 
-        // MODIFIED: AI Chef card — still opens AiChefActivity (GeminiChatActivity added in Phase 4)
-        findViewById<CardView>(R.id.btn_ai_chef).setOnClickListener { startActivity(Intent(this, AiChefActivity::class.java)) }
+        // MODIFIED: AI Chef card — now opens GeminiChatActivity directly (no WiFi block)
+        findViewById<CardView>(R.id.btn_ai_chef).setOnClickListener { startActivity(Intent(this, GeminiChatActivity::class.java)) }
         findViewById<CardView>(R.id.btn_prep_reminder).setOnClickListener { startActivity(Intent(this, PrepReminderActivity::class.java)) }
         findViewById<CardView>(R.id.btn_meal_calendar).setOnClickListener { startActivity(Intent(this, MealPlannerActivity::class.java)) }
         findViewById<CardView>(R.id.btn_local_flavor).setOnClickListener {
@@ -153,8 +151,7 @@ class HomeActivity : AppCompatActivity() {
         findViewById<CardView>(R.id.btn_discover).setOnClickListener { startActivity(Intent(this, DiscoverRecipesActivity::class.java)) }
         findViewById<CardView>(R.id.btn_saved).setOnClickListener { startActivity(Intent(this, SavedRecipesActivity::class.java)) }
 
-        // ADDED — initialise news feed after all existing listeners are set
-        setupNewsSection()
+        // REMOVED — setupNewsSection moved to Discover tab
         setupRecipeOfDay()
         setupMacroLoggerAndWater()
     }
@@ -182,76 +179,8 @@ class HomeActivity : AppCompatActivity() {
         }
     }
 
-    // ─────────────────────────────────────────────────────
-    // ADDED — News Section
-    // ─────────────────────────────────────────────────────
+    // REMOVED — News Section moved to Discover tab
 
-    private fun setupNewsSection() { 
-        newsAdapter = NewsAdapter(mutableListOf()) { article -> openArticleInBrowser(article.url) } 
-        val rvNews = findViewById<RecyclerView>(R.id.rvNews)
-        rvNews.layoutManager = LinearLayoutManager(this) 
-        rvNews.adapter = newsAdapter 
-        rvNews.isNestedScrollingEnabled = false 
-        setupFilterChips() 
-        loadNews(currentNewsQuery) 
-    } 
-
-    private fun setupFilterChips() { 
-        val chipGroupNewsFilter = findViewById<ChipGroup>(R.id.chipGroupNewsFilter)
-        chipGroupNewsFilter.setOnCheckedStateChangeListener { group, checkedIds -> 
-            val selectedChip = group.findViewById<Chip>( checkedIds.firstOrNull() ?: return@setOnCheckedStateChangeListener) 
-            val query = getQueryForChip(selectedChip.text.toString()) 
-            currentNewsQuery = query 
-            newsAdapter.currentCategory = selectedChip.text.toString() 
-            loadNews(query) 
-        } 
-    }
-
-    private fun loadNews(query: String) { 
-        val progressBarNews = findViewById<ProgressBar>(R.id.progressBarNews)
-        val tvNoNews = findViewById<TextView>(R.id.tvNoNews)
-        progressBarNews.visibility = View.VISIBLE 
-        NewsRetrofitClient.instance .getNews(query = query, apiKey = BuildConfig.NEWS_API_KEY) .enqueue(object : Callback<NewsResponse> { 
-            override fun onResponse(call: Call<NewsResponse>, response: Response<NewsResponse>) { 
-                progressBarNews.visibility = View.GONE 
-                if (response.isSuccessful) { 
-                    val articles = response.body()?.articles ?: emptyList() 
-                    newsAdapter.updateArticles(articles) 
-                    tvNoNews.visibility = if (articles.isEmpty()) View.VISIBLE else View.GONE 
-                } else { 
-                    showNewsError("Could not load news. Try again.") 
-                } 
-            } 
-            override fun onFailure(call: Call<NewsResponse>, t: Throwable) { 
-                progressBarNews.visibility = View.GONE 
-                showNewsError("Network error: ${t.localizedMessage}") 
-            } 
-        }) 
-    }
-
-    // ADDED — chip label → NewsAPI query mapping
-    private fun getQueryForChip(label: String): String = when (label) {
-        "Healthy"      -> "healthy food OR clean eating OR wholesome meals"
-        "Fitness"      -> "fitness meals OR workout nutrition OR sports diet"
-        "Diet"         -> "diet food OR weight loss diet OR calorie deficit"
-        "Recipes"      -> "easy recipes OR quick cooking OR meal prep"
-        "Nutrition"    -> "nutrition tips OR vitamins OR macros OR superfoods"
-        "Weight Loss"  -> "weight loss food OR fat burning meals OR low calorie"
-        "Vegan"        -> "vegan recipes OR plant based food OR vegan nutrition"
-        "High Protein" -> "high protein meals OR protein rich food OR muscle diet"
-        else           -> "food OR cooking OR nutrition OR healthy eating" // All
-    }
-
-    private fun openArticleInBrowser(url: String) { 
-        val builder = CustomTabsIntent.Builder() .setShowTitle(true) .setToolbarColor(ContextCompat.getColor(this, R.color.colorPrimary)) .build() 
-        builder.launchUrl(this, Uri.parse(url)) 
-    } 
-
-    private fun showNewsError(message: String) { 
-        val tvNoNews = findViewById<TextView>(R.id.tvNoNews)
-        tvNoNews.text = message 
-        tvNoNews.visibility = View.VISIBLE 
-    }
 
     override fun onStart() {
         super.onStart()
@@ -282,6 +211,8 @@ class HomeActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         loadUserData()
+        // Stop floating shop service if the user returns to Home Activity
+        stopService(Intent(this, FloatingShopService::class.java))
     }
 
     private fun loadUserData() {
@@ -289,21 +220,7 @@ class HomeActivity : AppCompatActivity() {
             val name = prefs.userName.first()
             tvGreeting.text = if (!name.isNullOrEmpty()) "Hello, $name! \uD83D\uDC4B" else "Hello! \uD83D\uDC4B"
         }
-        
-        val uid = SessionManager.getUserId(this)
-        if (uid.isNotEmpty()) {
-            FirebaseProfileLoader.loadUserProfile(uid, { profile ->
-                val baseQuery = "food OR cooking OR nutrition"
-                val userQuery = buildString {
-                    append(baseQuery)
-                    if (profile.dietType.isNotEmpty())         append(" OR ${profile.dietType} food")
-                    if (profile.fitnessGoal.isNotEmpty())      append(" OR ${profile.fitnessGoal} diet")
-                    if (profile.preferredCuisine.isNotEmpty()) append(" OR ${profile.preferredCuisine} recipes")
-                }
-                currentNewsQuery = userQuery
-                loadNews(currentNewsQuery)
-            }, {})
-        }
+        // REMOVED — news loading moved to Discover tab
     }
 
     private fun showProgressAndNavigate() {
@@ -396,6 +313,7 @@ class HomeActivity : AppCompatActivity() {
     }
 
     // --- FEATURE B & F: Macro Logger and Water Tracker ---
+    private val waterGoal = 8
     private var currentWater = 0
     private var currentCals = 0
     private var currentPro = 0
@@ -415,15 +333,27 @@ class HomeActivity : AppCompatActivity() {
         }
 
         findViewById<ImageButton>(R.id.btnWaterPlus).setOnClickListener {
-            currentWater++
-            updateWaterUI()
-            ref.child("water").child(today).setValue(currentWater)
+            if (currentWater < waterGoal) {
+                currentWater++
+                updateWaterUI()
+                ref.child("water").child(today).setValue(currentWater)
+
+                if (currentWater == waterGoal) {
+                    Toast.makeText(
+                        this,
+                        "Great job! You've hit your water goal for today!",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
         }
 
         findViewById<ImageButton>(R.id.btnWaterMinus).setOnClickListener {
-            if (currentWater > 0) currentWater--
-            updateWaterUI()
-            ref.child("water").child(today).setValue(currentWater)
+            if (currentWater > 0) {
+                currentWater--
+                updateWaterUI()
+                ref.child("water").child(today).setValue(currentWater)
+            }
         }
 
         // Load Macros

@@ -14,6 +14,31 @@
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.SEND_SMS" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+
+    <!-- Android 11+ requires explicit queries to detect installed apps -->
+    <queries>
+        <package android:name="in.swiggy.android" />
+        <package android:name="com.zeptoconsumerapp" />
+        <package android:name="com.grofers.customerapp" />
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="swiggy" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="zepto" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="blinkit" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="market" />
+        </intent>
+    </queries>
 
     <application
         android:name=".CookGPTApp"
@@ -73,9 +98,19 @@
         <activity android:name=".RssFeedActivity" android:exported="false" />
 
         <activity android:name=".AiChefActivity" android:exported="false" />
-        <activity android:name=".GeminiChatActivity" android:exported="false" />
+        <!-- MODIFIED — adjustResize so keyboard pushes chat up -->
+        <activity android:name=".WellnessActivity" android:exported="false" />
+        <activity android:name=".ShopActivity" android:exported="false" />
+        <activity android:name=".GeminiChatActivity" android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
 
         <service android:name=".FloatingPantryService" android:exported="false" />
+        <service android:name=".FloatingShopService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                      android:value="Displays a draggable shopping list on top of other apps" />
+        </service>
 
         <provider
             android:name="androidx.core.content.FileProvider"

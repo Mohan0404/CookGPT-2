@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- MODIFIED — Stitch MCP UI enhancement -->
 <androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
     android:background="@color/colorBackground">
 
     <androidx.appcompat.widget.Toolbar
@@ -23,6 +25,9 @@
         android:paddingHorizontal="8dp"
         android:paddingVertical="8dp"
         android:clipToPadding="false"
+        app:stackFromEnd="true"
+        app:reverseLayout="false"
+        android:overScrollMode="never"
         app:layout_constraintTop_toBottomOf="@id/toolbar">
 
         <LinearLayout
@@ -69,12 +74,17 @@
         </LinearLayout>
     </HorizontalScrollView>
 
+    <!-- MODIFIED — added paddingBottom for scroll clearance (BUG 5) -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvMessages"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:padding="8dp"
+        android:paddingBottom="8dp"
         android:clipToPadding="false"
+        app:stackFromEnd="true"
+        app:reverseLayout="false"
+        android:overScrollMode="never"
         app:layout_constraintTop_toBottomOf="@id/svQuickChips"
         app:layout_constraintBottom_toTopOf="@id/layoutInput"/>
 

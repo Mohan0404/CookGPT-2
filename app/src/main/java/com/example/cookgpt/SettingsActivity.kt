@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -12,9 +13,13 @@ import androidx.appcompat.widget.SwitchCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
+import com.example.cookgpt.AppDatabase
+import com.example.cookgpt.SessionManager
 import com.example.cookgpt.data.RecipeDatabaseHelper
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
+import kotlin.math.pow
+import kotlin.math.roundToInt
 
 class SettingsActivity : AppCompatActivity() {
 
@@ -85,8 +90,11 @@ class SettingsActivity : AppCompatActivity() {
 
         val tvUsername     = findViewById<TextView>(R.id.tv_user_name_display)
         val tvName         = findViewById<TextView>(R.id.tv_user_metrics)
-        val tvWeight       = findViewById<TextView>(R.id.tv_val_weight)
-        val tvHeight       = findViewById<TextView>(R.id.tv_val_height)
+        val tvValWeight    = findViewById<TextView>(R.id.tv_val_weight)
+        val tvValHeight    = findViewById<TextView>(R.id.tv_val_height)
+        val tvValBmi       = findViewById<TextView>(R.id.tv_val_bmi)
+        val tvValBmiStatus = findViewById<TextView>(R.id.tv_val_bmi_status)
+        val llBmiContainer = findViewById<LinearLayout>(R.id.ll_bmi_container)
         val tvGoal         = findViewById<TextView>(R.id.tv_val_goal)
         val tvAllergies    = findViewById<TextView>(R.id.tv_val_allergies)
         val tvRestrictions = findViewById<TextView>(R.id.tv_val_restrictions)
@@ -105,8 +113,31 @@ class SettingsActivity : AppCompatActivity() {
             }
         }
 
-        tvWeight.text       = "${prefs.getString("weight", "—")} kg"
-        tvHeight.text       = "${prefs.getString("height", "—")} cm"
+        val weightStr = prefs.getString("weight", "0") ?: "0"
+        val heightStr = prefs.getString("height", "0") ?: "0"
+        val weight = weightStr.toFloatOrNull() ?: 0f
+        val height = heightStr.toFloatOrNull() ?: 0f
+
+        tvValWeight.text = "$weightStr kg"
+        tvValHeight.text = "$heightStr cm"
+
+        if (weight > 0 && height > 0) {
+            val bmi = weight / (height / 100).pow(2)
+            val roundedBmi = (bmi * 10).roundToInt() / 10.0
+            tvValBmi.text = roundedBmi.toString()
+            
+            val status = when {
+                bmi < 18.5f -> "(Underweight)"
+                bmi < 25.0f -> "(Normal Weight)"
+                bmi < 30.0f -> "(Overweight)"
+                else -> "(Obese)"
+            }
+            tvValBmiStatus.text = status
+            llBmiContainer.visibility = View.VISIBLE
+        } else {
+            llBmiContainer.visibility = View.GONE
+        }
+
         tvGoal.text         = prefs.getString("goal", "—") ?: "—"
         tvAllergies.text    = prefs.getString("allergies","None") ?: "None"
         tvRestrictions.text = prefs.getString("restrictions","None") ?: "None"

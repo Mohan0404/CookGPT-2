@@ -1,5 +1,6 @@
 package com.example.cookgpt
 
+import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -8,14 +9,20 @@ import android.text.TextWatcher
 import android.util.Log
 import android.view.View
 import android.widget.EditText
-import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.browser.customtabs.CustomTabsIntent
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.cookgpt.data.YouTubeSearchResponse
+import com.example.cookgpt.news.NewsAdapter
+import com.example.cookgpt.news.NewsRetrofitClient
+import com.example.cookgpt.news.NewsResponse
+import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipGroup
 
 import retrofit2.Call
 import retrofit2.Callback
@@ -23,11 +30,14 @@ import retrofit2.Response
 
 class DiscoverActivity : AppCompatActivity() {
 
-
     private lateinit var etSearch: EditText
     private lateinit var tvEmptyState: TextView
     private lateinit var pbLoading: ProgressBar
     private lateinit var rvVideos: RecyclerView
+
+    // ADDED — news section state
+    private lateinit var newsAdapter: NewsAdapter
+    private var currentNewsQuery = "food OR cooking OR nutrition OR healthy eating"
 
     private var videoQueue: List<com.example.cookgpt.data.YouTubeItem> = emptyList()
 
@@ -40,7 +50,6 @@ class DiscoverActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_discover)
 
-
         etSearch          = findViewById(R.id.etSearch)
         tvEmptyState      = findViewById(R.id.tvEmptyState)
         pbLoading         = findViewById(R.id.pbLoading)
@@ -48,8 +57,6 @@ class DiscoverActivity : AppCompatActivity() {
 
         rvVideos.layoutManager = LinearLayoutManager(this)
         rvVideos.setHasFixedSize(false)
-
-
 
         // 600ms debounce — minimum 3 characters before firing
         etSearch.addTextChangedListener(object : TextWatcher {
@@ -69,6 +76,9 @@ class DiscoverActivity : AppCompatActivity() {
                 handler.postDelayed(searchRunnable!!, 600)
             }
         })
+
+        // ADDED — initialise news feed
+        setupNewsSection()
     }
 
     // ── Search: fetch 10 embeddable videos ────────────────────────────────
@@ -88,7 +98,6 @@ class DiscoverActivity : AppCompatActivity() {
         }
 
         // Show progress, hide list and empty state.
-        // NEVER hide youtubePlayerView — that breaks its WebView surface.
         pbLoading.visibility    = View.VISIBLE
         rvVideos.visibility     = View.GONE
         tvEmptyState.visibility = View.GONE
@@ -141,10 +150,6 @@ class DiscoverActivity : AppCompatActivity() {
                     }
 
                     // ── TASK 1 & 7 — STRICT SHORTS FILTER + SMART RANKING ────────
-                    // Excluded if ANY of these is true:
-                    //   • title contains "short", "#short", or "#shorts" (case-insensitive)
-                    //   • title is suspiciously short (< 20 chars — typical of Shorts)
-                    //   • videoId is null
                     val filteredItems = rawItems?.filter { item ->
                         val title   = item.snippet?.title ?: return@filter false
                         val videoId = item.id?.videoId    ?: return@filter false
@@ -202,7 +207,95 @@ class DiscoverActivity : AppCompatActivity() {
             })
     }
 
+    // ─────────────────────────────────────────────────────
+    // ADDED — News Section (moved from HomeActivity)
+    // ─────────────────────────────────────────────────────
 
+    private fun setupNewsSection() {
+        newsAdapter = NewsAdapter(mutableListOf()) { article -> openArticleInBrowser(article.url) }
+        val rvNews = findViewById<RecyclerView>(R.id.rvNews)
+        rvNews.layoutManager = LinearLayoutManager(this)
+        rvNews.adapter = newsAdapter
+        rvNews.isNestedScrollingEnabled = false
+        setupFilterChips()
+
+        // ADDED — load personalised news from user profile
+        val uid = SessionManager.getUserId(this)
+        if (uid.isNotEmpty()) {
+            FirebaseProfileLoader.loadUserProfile(uid, { profile ->
+                val baseQuery = "food OR cooking OR nutrition"
+                val userQuery = buildString {
+                    append(baseQuery)
+                    if (profile.dietType.isNotEmpty())         append(" OR ${profile.dietType} food")
+                    if (profile.fitnessGoal.isNotEmpty())      append(" OR ${profile.fitnessGoal} diet")
+                    if (profile.preferredCuisine.isNotEmpty()) append(" OR ${profile.preferredCuisine} recipes")
+                }
+                currentNewsQuery = userQuery
+                loadNews(currentNewsQuery)
+            }, {
+                loadNews(currentNewsQuery)
+            })
+        } else {
+            loadNews(currentNewsQuery)
+        }
+    }
+
+    private fun setupFilterChips() {
+        val chipGroupNewsFilter = findViewById<ChipGroup>(R.id.chipGroupNewsFilter)
+        chipGroupNewsFilter.setOnCheckedStateChangeListener { group, checkedIds ->
+            val selectedChip = group.findViewById<Chip>(checkedIds.firstOrNull() ?: return@setOnCheckedStateChangeListener)
+            val query = getQueryForChip(selectedChip.text.toString())
+            currentNewsQuery = query
+            newsAdapter.currentCategory = selectedChip.text.toString()
+            loadNews(query)
+        }
+    }
+
+    private fun loadNews(query: String) {
+        val progressBarNews = findViewById<ProgressBar>(R.id.progressBarNews)
+        val tvNoNews = findViewById<TextView>(R.id.tvNoNews)
+        progressBarNews.visibility = View.VISIBLE
+        NewsRetrofitClient.instance.getNews(query = query, apiKey = BuildConfig.NEWS_API_KEY).enqueue(object : Callback<NewsResponse> {
+            override fun onResponse(call: Call<NewsResponse>, response: Response<NewsResponse>) {
+                progressBarNews.visibility = View.GONE
+                if (response.isSuccessful) {
+                    val articles = response.body()?.articles ?: emptyList()
+                    newsAdapter.updateArticles(articles)
+                    tvNoNews.visibility = if (articles.isEmpty()) View.VISIBLE else View.GONE
+                } else {
+                    showNewsError("Could not load news. Try again.")
+                }
+            }
+            override fun onFailure(call: Call<NewsResponse>, t: Throwable) {
+                progressBarNews.visibility = View.GONE
+                showNewsError("Network error: ${t.localizedMessage}")
+            }
+        })
+    }
+
+    // ADDED — chip label → NewsAPI query mapping
+    private fun getQueryForChip(label: String): String = when (label) {
+        "Healthy"      -> "healthy food OR clean eating OR wholesome meals"
+        "Fitness"      -> "fitness meals OR workout nutrition OR sports diet"
+        "Diet"         -> "diet food OR weight loss diet OR calorie deficit"
+        "Recipes"      -> "easy recipes OR quick cooking OR meal prep"
+        "Nutrition"    -> "nutrition tips OR vitamins OR macros OR superfoods"
+        "Weight Loss"  -> "weight loss food OR fat burning meals OR low calorie"
+        "Vegan"        -> "vegan recipes OR plant based food OR vegan nutrition"
+        "High Protein" -> "high protein meals OR protein rich food OR muscle diet"
+        else           -> "food OR cooking OR nutrition OR healthy eating" // All
+    }
+
+    private fun openArticleInBrowser(url: String) {
+        val builder = CustomTabsIntent.Builder().setShowTitle(true).setToolbarColor(ContextCompat.getColor(this, R.color.colorPrimary)).build()
+        builder.launchUrl(this, Uri.parse(url))
+    }
+
+    private fun showNewsError(message: String) {
+        val tvNoNews = findViewById<TextView>(R.id.tvNoNews)
+        tvNoNews.text = message
+        tvNoNews.visibility = View.VISIBLE
+    }
 
     // ── Helpers ────────────────────────────────────────────────────────────
     private fun showEmpty(message: String) {

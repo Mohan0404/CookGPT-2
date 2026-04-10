@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Floating shopping list overlay — appears on top of vendor apps -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="280dp"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_floating_window"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:elevation="8dp">
+
+    <!-- Drag handle + Title -->
+    <LinearLayout
+        android:id="@+id/dragHandle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <View
+            android:layout_width="32dp"
+            android:layout_height="4dp"
+            android:background="@color/grey_light" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:text="🛒 Shopping List"
+            android:textColor="@color/text_black"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <!-- Minimize button -->
+        <ImageView
+            android:id="@+id/btnMinimize"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:background="@android:color/transparent"
+            android:src="@drawable/ic_remove"
+            app:tint="@color/text_grey"
+            android:padding="4dp" />
+
+        <!-- Close button -->
+        <ImageView
+            android:id="@+id/btnCloseOverlay"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_marginStart="4dp"
+            android:background="@android:color/transparent"
+            android:src="@drawable/ic_delete"
+            app:tint="@color/text_red"
+            android:padding="4dp" />
+    </LinearLayout>
+
+    <!-- Item count -->
+    <TextView
+        android:id="@+id/tvItemCount"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="5 items to buy"
+        android:textColor="@color/text_grey"
+        android:textSize="12sp" />
+
+    <!-- Scrollable shopping list — fixed height instead of invalid maxHeight -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="250dp"
+        android:layout_marginTop="8dp"
+        android:fadeScrollbars="false">
+
+        <LinearLayout
+            android:id="@+id/llShoppingItems"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingBottom="8dp" />
+    </ScrollView>
+
+    <!-- Estimated total -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginTop="8dp"
+        android:padding="8dp"
+        android:background="@color/bg_green_light">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Estimated Total"
+            android:textColor="@color/text_grey"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/tvFloatingTotal"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/bg_green"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:text="₹0" />
+    </LinearLayout>
+</LinearLayout>

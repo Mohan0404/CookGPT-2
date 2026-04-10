@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- MODIFIED — Stitch MCP UI enhancement -->
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
@@ -13,7 +14,7 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:background="@drawable/bg_message_user"
-        android:padding="12dp"
+        android:padding="16dp"
         android:layout_marginStart="48dp"
         android:gravity="end">
 
@@ -21,16 +22,16 @@
             android:id="@+id/tvMessage"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="@android:color/white"
-            android:textSize="15sp"
+            android:textColor="#064E3B"
+            android:textSize="14sp"
             android:text="User message" />
 
         <TextView
             android:id="@+id/tvTime"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="#E0E0E0"
-            android:textSize="11sp"
+            android:textColor="#10B981"
+            android:textSize="12sp"
             android:layout_marginTop="2dp"
             android:text="12:00" />
     </LinearLayout>
