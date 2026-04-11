@@ -93,6 +93,9 @@ dependencies {
     // Stable AdMob version
     implementation("com.google.android.gms:play-services-ads:23.6.0")
 
+    // Charting library
+    implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
